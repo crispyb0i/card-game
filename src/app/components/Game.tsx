@@ -7,9 +7,9 @@ import { Card } from './Card';
 import { Card as CardType } from '../../lib/types';
 import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
-import { Shop } from './Shop';
 
-type ViewState = 'menu' | 'game' | 'shop' | 'inventory';
+
+type ViewState = 'menu' | 'game' | 'inventory';
 
 export const Game: React.FC = () => {
     const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame } = useGameLogic();
@@ -41,15 +41,12 @@ export const Game: React.FC = () => {
         return (
             <MainMenu
                 onStartGame={handleStartGame}
-                onOpenShop={() => setView('shop')}
                 onOpenInventory={() => setView('inventory')}
             />
         );
     }
 
-    if (view === 'shop') {
-        return <Shop onBack={() => setView('menu')} />;
-    }
+
 
     if (view === 'inventory') {
         return <Inventory onBack={() => setView('menu')} onSaveDeck={(deck) => {
@@ -81,7 +78,7 @@ export const Game: React.FC = () => {
                 {/* Opponent Hand */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-red-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Opponent</h2>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         {gameState.opponentHand.map((card) => (
                             <Card
                                 key={card.id}
@@ -89,6 +86,13 @@ export const Game: React.FC = () => {
                                 onClick={(c) => setPreviewCard(c)}
                             />
                         ))}
+                    </div>
+                    {/* Opponent Deck Count */}
+                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
+                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
+                            <span className="text-slate-400 font-bold text-xs">{gameState.opponentDeck.length}</span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
                     </div>
                 </div>
 
@@ -129,7 +133,7 @@ export const Game: React.FC = () => {
                 {/* Player Hand */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-amber-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Player</h2>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                         {gameState.playerHand.map((card) => (
                             <Card
                                 key={card.id}
@@ -140,26 +144,22 @@ export const Game: React.FC = () => {
                             />
                         ))}
                     </div>
+                    {/* Player Deck Count */}
+                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
+                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
+                            <span className="text-amber-400 font-bold text-xs">{gameState.playerDeck.length}</span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
+                    </div>
                 </div>
             </div>
 
             {previewCard && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={() => setPreviewCard(null)}
                 >
-                    <div
-                        className="relative"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <Card card={previewCard} className="scale-150 shadow-2xl" />
-                        <button
-                            onClick={() => setPreviewCard(null)}
-                            className="absolute -top-6 -right-6 w-8 h-8 rounded-full bg-black/80 text-amber-100 text-sm font-bold flex items-center justify-center border border-amber-400 hover:bg-amber-600 hover:text-black transition-colors"
-                        >
-                            ✕
-                        </button>
-                    </div>
+                    <Card card={previewCard} className="scale-[2.5] shadow-2xl" />
                 </div>
             )}
         </div>

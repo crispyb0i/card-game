@@ -47,11 +47,14 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
                 return {
                     id: `new-${char.id}-${Date.now()}-${i}`,
                     name: char.name,
-                    stats: char.stats,
+                    stats: { ...char.stats },
+                    baseStats: { ...char.stats },
                     imageUrl: char.imageUrl,
                     owner: 'player',
                     rarity: char.rarity,
                     variant: 'base',
+                    characterId: char.id,
+                    ability: char.ability,
                 } as CardType;
             });
 
