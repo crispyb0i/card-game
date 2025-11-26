@@ -54,16 +54,16 @@ export default function CoinFlip({ onResult, show }: CoinFlipProps) {
                     </p>
                 </div>
 
-                <div className="flex items-center justify-between mb-6 text-sm font-sans text-slate-200">
-                    <span className={activeSide === 'player' ? 'text-amber-300 font-bold' : 'text-slate-500'}>
+                <div className="flex items-center justify-center mb-6 text-sm font-sans text-slate-200 gap-8">
+                    <span className={`${activeSide === 'player' ? 'text-amber-300 font-bold' : 'text-slate-500'} min-w-[80px] text-right`}>
                         YOU
                     </span>
-                    <div className="flex items-center justify-center w-24">
+                    <div className="flex items-center justify-center">
                         <span className="text-4xl transition-all duration-150">
                             {activeSide === 'player' ? '←' : '→'}
                         </span>
                     </div>
-                    <span className={activeSide === 'opponent' ? 'text-red-300 font-bold' : 'text-slate-500'}>
+                    <span className={`${activeSide === 'opponent' ? 'text-red-300 font-bold' : 'text-slate-500'} min-w-[80px] text-left`}>
                         OPPONENT
                     </span>
                 </div>

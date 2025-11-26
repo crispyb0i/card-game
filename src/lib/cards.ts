@@ -217,7 +217,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'wizard',
         name: 'High Wizard',
-        stats: { top: 3, right: 8, bottom: 2, left: 7 }, // Sum 20
+        stats: { top: 3, right: 5, bottom: 2, left: 6 }, // Sum 20
         imageUrl: '/assets/wizard.png',
         description: 'Master of arcane arts, weak in melee.',
         rarity: 'epic',

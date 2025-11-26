@@ -10,20 +10,23 @@ interface BoardProps {
     board: BoardType;
     onDropCard: (index: number) => void;
     onHoverSlot: (index: number) => void;
+    onDragLeave?: () => void;
     previewCaptures: number[];
+    hoveredSlot?: number | null;
     onCardClick?: (card: CardType) => void;
     mapId?: MapId;
 }
 
-export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, previewCaptures, onCardClick, mapId }) => {
+export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, onDragLeave, previewCaptures, hoveredSlot, onCardClick, mapId }) => {
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault(); // Allow drop
         onHoverSlot(index);
     };
 
-    const handleDragLeave = (index: number) => {
-        // Optional: clear hover state if needed, but usually handled by next hover or drop
-        // onHoverSlot(-1); // Assuming -1 clears it
+    const handleDragLeave = () => {
+        if (onDragLeave) {
+            onDragLeave();
+        }
     };
 
     const handleDrop = (e: React.DragEvent, index: number) => {
@@ -38,6 +41,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, pr
         <div className="grid grid-cols-3 gap-3 p-4 bg-slate-800 rounded-xl border-[6px] border-slate-700 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
             {board.map((card, index) => {
                 const isCapturedPreview = previewCaptures.includes(index);
+                const isHovered = hoveredSlot === index && !card;
 
                 // Apply modifiers to card stats if they exist
                 let displayCard = card;
@@ -62,14 +66,16 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, pr
                         key={index}
                         className={`
               relative w-32 h-40 rounded-sm border-2 flex items-center justify-center
-              transition-colors duration-200
+              transition-all duration-200
               ${card ? 'border-transparent' : 'border-slate-600 bg-slate-700/30'}
               ${!card && 'hover:bg-slate-600/50'}
               ${tileConfig?.type === 'relic' && !card ? 'bg-amber-900/30 border-amber-500/70' : ''}
               ${tileConfig?.type === 'hazard' && !card ? 'bg-red-900/30 border-red-500/70' : ''}
               ${isCapturedPreview ? 'ring-4 ring-amber-400 ring-opacity-70 z-10' : ''}
+              ${isHovered ? 'ring-4 ring-blue-400 ring-opacity-80 bg-blue-500/20 border-blue-400 scale-105 z-10' : ''}
             `}
                         onDragOver={(e) => handleDragOver(e, index)}
+                        onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, index)}
                     >
                         {tileConfig && (
@@ -112,6 +118,11 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, pr
                                 {isCapturedPreview && (
                                     <div className="absolute inset-0 bg-amber-500/20 rounded-sm z-20 pointer-events-none" />
                                 )}
+                            </div>
+                        )}
+                        {isHovered && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                                <div className="w-24 h-32 border-2 border-dashed border-blue-400 rounded-sm bg-blue-500/10 animate-pulse" />
                             </div>
                         )}
                     </div>

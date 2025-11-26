@@ -20,20 +20,49 @@ interface CardProps {
 export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragStart, className = '', onClick, board, boardIndex, envEffect }) => {
     const handleDragStart = (e: React.DragEvent) => {
         if (isDraggable && onDragStart) {
+            setIsDragging(true);
             onDragStart(e, card);
             e.dataTransfer.setData('cardId', card.id);
 
-            // Use the whole card as the drag preview instead of just the image
+            // Create a custom drag image to avoid border clipping
             const node = e.currentTarget as HTMLElement;
             if (e.dataTransfer && node) {
+                // Clone the node to use as drag image
+                const clone = node.cloneNode(true) as HTMLElement;
+                clone.style.position = 'absolute';
+                clone.style.top = '-9999px';
+                clone.style.left = '-9999px';
+                clone.style.opacity = '0.95';
+                clone.style.transform = 'rotate(3deg)';
+                clone.style.pointerEvents = 'none';
+                // Ensure borders are included
+                clone.style.boxSizing = 'border-box';
+                document.body.appendChild(clone);
+                
+                // Force a reflow to ensure the clone is rendered
+                clone.offsetHeight;
+                
                 const rect = node.getBoundingClientRect();
-                e.dataTransfer.setDragImage(node, rect.width / 2, rect.height / 2);
+                // Use the center of the card, accounting for borders
+                e.dataTransfer.setDragImage(clone, rect.width / 2, rect.height / 2);
+                
+                // Clean up after drag starts
+                requestAnimationFrame(() => {
+                    if (document.body.contains(clone)) {
+                        document.body.removeChild(clone);
+                    }
+                });
             }
         }
     };
 
+    const handleDragEnd = () => {
+        setIsDragging(false);
+    };
+
     const isPlayer = card.owner === 'player';
     const [isFlipping, setIsFlipping] = React.useState(false);
+    const [isDragging, setIsDragging] = React.useState(false);
     const [showAbilityTooltip, setShowAbilityTooltip] = React.useState(false);
     const [showStatsTooltip, setShowStatsTooltip] = React.useState(false);
     const [showEnvTooltip, setShowEnvTooltip] = React.useState(false);
@@ -61,14 +90,14 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
     const getRarityGlow = (rarity: string) => {
         switch (rarity) {
             case 'legendary':
-                return 'ring-4 ring-orange-400 shadow-[0_0_15px_rgba(251,146,60,0.8)]';
+                return 'legendary-card ring-4 ring-yellow-400';
             case 'epic':
-                return 'ring-4 ring-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.6)]';
+                return 'epic-card ring-4 ring-purple-400';
             case 'rare':
-                return 'ring-4 ring-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]';
+                return 'ring-4 ring-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_24px_rgba(34,211,238,0.3)]';
             case 'common':
                 // Soft gray border for common cards (same thickness as others)
-                return 'ring-4 ring-slate-300/80 shadow-[0_0_6px_rgba(148,163,184,0.5)]';
+                return 'ring-4 ring-slate-300/80 shadow-[0_0_8px_rgba(148,163,184,0.4)]';
             default:
                 return 'border border-slate-900';
         }
@@ -107,6 +136,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
             <div
                 draggable={isDraggable}
                 onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
                 onClick={onClick ? () => onClick(card) : undefined}
                 className={`
         relative w-28 h-36 rounded-lg flex flex-col items-center p-1 select-none
@@ -114,6 +144,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
         ${bgColor} ${className} ${rarityStyle} ${abilityGlow}
         ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:scale-110 hover:z-20' : 'cursor-pointer'}
         ${isFlipping ? 'animate-flip' : ''}
+        ${isDragging ? 'opacity-30' : ''}
       `}
                 style={{
                     transform: `rotateY(${isPlayer ? '0deg' : '0deg'})`,
@@ -122,7 +153,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
             >
                 {/* Stats Overlay */}
                 <div
-                    className={`absolute -top-3 -left-3 flex flex-col items-center justify-center font-serif font-black text-[11px] leading-tight bg-black/80 rounded-md px-1.5 py-1 backdrop-blur-sm border border-white/30 shadow-lg z-10 cursor-help`}
+                    className={`absolute -top-3 -left-3 flex flex-col items-center justify-center font-serif font-black text-[11px] leading-tight bg-black/80 rounded-md px-1.5 py-1 backdrop-blur-sm border border-white/30 shadow-lg z-20 cursor-help`}
                     onMouseEnter={() => setShowStatsTooltip(true)}
                     onMouseLeave={() => setShowStatsTooltip(false)}
                 >
@@ -136,7 +167,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
 
                 {envEffect && (
                     <div
-                        className={`absolute -top-2 -right-11 w-7 h-7 rounded-full bg-black/80 border flex items-center justify-center text-sm shadow-lg z-10 cursor-help ${envEffect.kind === 'debuff'
+                        className={`absolute -top-2 -right-11 w-7 h-7 rounded-full bg-black/80 border flex items-center justify-center text-sm shadow-lg z-20 cursor-help ${envEffect.kind === 'debuff'
                             ? 'border-red-400 text-red-300'
                             : 'border-emerald-400 text-emerald-300'
                             }`}
@@ -150,7 +181,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
 
                 {card.ability && abilityMeta && (
                     <div
-                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black/80 border border-white/30 text-amber-200 flex items-center justify-center text-lg shadow-lg z-10 cursor-help"
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black/80 border border-white/30 text-amber-200 flex items-center justify-center text-lg shadow-lg z-20 cursor-help"
                         onMouseEnter={() => setShowAbilityTooltip(true)}
                         onMouseLeave={() => setShowAbilityTooltip(false)}
                         aria-label={`${card.ability.name} (${abilityMeta.label})`}
@@ -160,7 +191,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
                 )}
 
                 {/* Inner Frame for Image */}
-                <div className="relative w-full flex-1 min-h-[80%] bg-slate-900 rounded-md overflow-hidden border border-black/20 mb-0.5">
+                <div className="relative w-full flex-1 min-h-[80%] bg-slate-900 rounded-md overflow-hidden border border-black/20 mb-0.5 z-0">
                     <Image
                         src={card.imageUrl}
                         alt={card.name}
@@ -172,7 +203,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
                 </div>
 
                 {/* Name */}
-                <div className="w-full mt-auto flex flex-col items-center gap-0.5">
+                <div className="relative w-full mt-auto flex flex-col items-center gap-0.5 z-10">
                     <div className={`text-center text-[9px] uppercase tracking-widest font-bold ${textColor} truncate`}>
                         {card.name}
                     </div>

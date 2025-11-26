@@ -38,6 +38,7 @@ export const Game: React.FC = () => {
     const [difficulty, setDifficulty] = useState<AIDifficulty>('normal');
     const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame, setStartingPlayer } = useGameLogic(difficulty);
     const [draggedCard, setDraggedCard] = useState<CardType | null>(null);
+    const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
     const [view, setView] = useState<ViewState>('menu');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
     const [showStarterPicker, setShowStarterPicker] = useState(false);
@@ -52,11 +53,17 @@ export const Game: React.FC = () => {
         if (draggedCard) {
             handleCardDrop(draggedCard, index);
             setDraggedCard(null);
+            setHoveredSlot(null);
         }
     };
 
     const onHoverSlot = (index: number) => {
+        setHoveredSlot(index);
         handleHover(draggedCard, index);
+    };
+
+    const onDragLeave = () => {
+        setHoveredSlot(null);
     };
 
     const handleStartGame = () => {
@@ -127,13 +134,6 @@ export const Game: React.FC = () => {
                             />
                         ))}
                     </div>
-                    {/* Player Deck Count */}
-                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
-                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
-                            <span className="text-amber-400 font-bold text-xs">{gameState.playerDeck.length}</span>
-                        </div>
-                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
-                    </div>
                 </div>
 
                 {/* Board Area */}
@@ -146,12 +146,30 @@ export const Game: React.FC = () => {
                         <span className="text-red-300 font-extrabold">{liveScores.opponentScore} Opponent</span>
                     </div>
 
+                    {/* Deck Counts */}
+                    <div className="flex items-center justify-center gap-8 mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-16 bg-blue-900/40 border-2 border-blue-500 rounded-sm flex items-center justify-center shadow-inner">
+                                <span className="text-blue-300 font-bold text-lg">{gameState.playerDeck.length}</span>
+                            </div>
+                            <span className="text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-16 bg-red-900/40 border-2 border-red-500 rounded-sm flex items-center justify-center shadow-inner">
+                                <span className="text-red-300 font-bold text-lg">{gameState.opponentDeck.length}</span>
+                            </div>
+                            <span className="text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
+                        </div>
+                    </div>
+
                     <div className="relative p-4 bg-slate-900/50 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm">
                         <Board
                             board={gameState.board}
                             onDropCard={onDropCard}
                             onHoverSlot={onHoverSlot}
+                            onDragLeave={onDragLeave}
                             previewCaptures={previewCaptures}
+                            hoveredSlot={hoveredSlot}
                             onCardClick={(card) => setPreviewCard(card)}
                         />
 
@@ -214,13 +232,6 @@ export const Game: React.FC = () => {
                                 onClick={(c) => setPreviewCard(c)}
                             />
                         ))}
-                    </div>
-                    {/* Opponent Deck Count */}
-                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
-                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
-                            <span className="text-slate-400 font-bold text-xs">{gameState.opponentDeck.length}</span>
-                        </div>
-                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
                     </div>
                 </div>
             </div>
