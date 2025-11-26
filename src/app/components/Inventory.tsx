@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card as CardType, Rarity } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
@@ -55,21 +55,19 @@ interface InventoryProps {
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
-    // Create inventory cards with unique IDs
-    const [ownedCards] = useState<CardType[]>(() =>
-        CHARACTERS.map((char, i) => ({
-            id: `inv-${char.id}-${i}`,
-            name: char.name,
-            imageUrl: char.imageUrl,
-            stats: { ...char.stats },
-            baseStats: { ...char.stats },
-            owner: 'player' as const,
-            rarity: char.rarity,
-            variant: 'base' as const,
-            characterId: char.id,
-            ability: char.ability,
-        }))
-    );
+    // Create inventory cards with unique IDs (as constant for use in initializer)
+    const ownedCards = CHARACTERS.map((char, i) => ({
+        id: `inv-${char.id}-${i}`,
+        name: char.name,
+        imageUrl: char.imageUrl,
+        stats: { ...char.stats },
+        baseStats: { ...char.stats },
+        owner: 'player' as const,
+        rarity: char.rarity,
+        variant: 'base' as const,
+        characterId: char.id,
+        ability: char.ability,
+    }));
 
     // Helper function to map character IDs to deck slots
     const mapCharacterIdsToDeck = (characterIds: string[], cards: CardType[]): (string | null)[] => {
@@ -91,29 +89,24 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
         return newDeck;
     };
 
-    // selectedDeck now stores card IDs indexed by slot position
-    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(Array(DECK_SIZE).fill(null));
-
-    // Initialize deck from saved or default
-    useEffect(() => {
-        const savedDeck = localStorage.getItem('playerDeck');
+    // Initialize deck from saved or default using useState initializer
+    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(() => {
+        const savedDeck = typeof window !== 'undefined' ? localStorage.getItem('playerDeck') : null;
         if (savedDeck) {
             try {
                 const savedCharacterIds: string[] = JSON.parse(savedDeck);
                 const mappedDeck = mapCharacterIdsToDeck(savedCharacterIds, ownedCards);
-                setSelectedDeck(mappedDeck);
+                return mappedDeck;
             } catch (e) {
                 console.error("Failed to load deck", e);
                 // Fall through to default deck
-                const defaultDeck = mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
-                setSelectedDeck(defaultDeck);
+                return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
             }
         } else {
             // No saved deck - use default deck
-            const defaultDeck = mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
-            setSelectedDeck(defaultDeck);
+            return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
         }
-    }, [ownedCards]);
+    });
     const [filter, setFilter] = useState<Rarity | 'all'>('all');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);

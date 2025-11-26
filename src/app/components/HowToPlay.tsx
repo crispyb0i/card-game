@@ -53,7 +53,7 @@ export const HowToPlay: React.FC<HowToPlayProps> = ({ onBack }) => {
                                     <h3 className="font-semibold text-blue-200 mb-1">Card Numbers</h3>
                                     <p className="text-sm text-slate-300 font-sans leading-relaxed">
                                         Each card has four numbers: <span className="text-amber-300 font-semibold">top</span>, <span className="text-amber-300 font-semibold">right</span>, <span className="text-amber-300 font-semibold">bottom</span>, and <span className="text-amber-300 font-semibold">left</span>.
-                                        When you place a card next to an enemy card, its touching number is compared to the enemy's touching number.
+                                        When you place a card next to an enemy card, its touching number is compared to the enemy&apos;s touching number.
                                     </p>
                                 </div>
                             </div>

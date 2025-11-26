@@ -44,25 +44,16 @@ export const Card: React.FC<CardProps> = ({
 }) => {
     const handleDragStart = (e: React.DragEvent) => {
         if (isDraggable && onDragStart) {
-            setIsDragging(true);
             onDragStart(e, card);
             e.dataTransfer.setData('cardId', card.id);
 
-            if (e.dataTransfer && typeof window !== 'undefined') {
-                if (!window.__dragTransparentImage) {
-                    const img = new window.Image();
-                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
-                    img.width = 1;
-                    img.height = 1;
-                    window.__dragTransparentImage = img;
-                }
+            if (e.dataTransfer && typeof window !== 'undefined' && window.__dragTransparentImage) {
                 e.dataTransfer.setDragImage(window.__dragTransparentImage, 0, 0);
             }
         }
     };
 
     const handleDragEnd = () => {
-        setIsDragging(false);
         if (onDragEnd) {
             onDragEnd();
         }
@@ -70,13 +61,23 @@ export const Card: React.FC<CardProps> = ({
 
     const isPlayer = card.owner === 'player';
     const [isFlipping, setIsFlipping] = React.useState(false);
-    const [isDragging, setIsDragging] = React.useState(false);
     const [showAbilityTooltip, setShowAbilityTooltip] = React.useState(false);
     const [showStatsTooltip, setShowStatsTooltip] = React.useState(false);
     const [showEnvTooltip, setShowEnvTooltip] = React.useState(false);
     const [tooltipPosition, setTooltipPosition] = React.useState<{ top: number; left: number } | null>(null);
     const cardRef = React.useRef<HTMLDivElement>(null);
     const prevOwnerRef = React.useRef(card.owner);
+
+    // Initialize drag transparent image in useEffect
+    React.useEffect(() => {
+        if (typeof window !== 'undefined' && !window.__dragTransparentImage) {
+            const img = new window.Image();
+            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+            img.width = 1;
+            img.height = 1;
+            window.__dragTransparentImage = img;
+        }
+    }, []);
 
     React.useEffect(() => {
         if (prevOwnerRef.current !== card.owner) {
@@ -152,23 +153,29 @@ export const Card: React.FC<CardProps> = ({
     React.useEffect(() => {
         if ((showAbilityTooltip || showStatsTooltip || showEnvTooltip) && cardRef.current) {
             const rect = cardRef.current.getBoundingClientRect();
+            // For environment tooltip, center horizontally; for others, position to the right
+            const left = showEnvTooltip 
+                ? rect.left + rect.width / 2 + window.scrollX
+                : rect.right + window.scrollX + 8; // 8px margin (ml-2)
             setTooltipPosition({
                 top: rect.top + window.scrollY,
-                left: rect.right + window.scrollX + 8, // 8px margin (ml-2)
+                left,
             });
         } else {
             setTooltipPosition(null);
         }
     }, [showAbilityTooltip, showStatsTooltip, showEnvTooltip]);
 
-    const renderTooltip = (content: React.ReactNode, isBottom = false) => {
+    const renderTooltip = (content: React.ReactNode, isBottom = false, centerHorizontal = false) => {
         if (!tooltipPosition || typeof window === 'undefined') return null;
         
         const style: React.CSSProperties = {
             position: 'fixed',
             top: isBottom ? 'auto' : `${tooltipPosition.top}px`,
             bottom: isBottom ? `${window.innerHeight - tooltipPosition.top}px` : 'auto',
-            left: `${tooltipPosition.left}px`,
+            left: centerHorizontal ? `${tooltipPosition.left}px` : `${tooltipPosition.left}px`,
+            transform: centerHorizontal ? 'translateX(-50%)' : 'none',
+            marginBottom: centerHorizontal ? '8px' : '0',
             zIndex: 999999,
         };
 
@@ -301,35 +308,18 @@ export const Card: React.FC<CardProps> = ({
             )}
 
             {/* Environment Tooltip */}
-            {showEnvTooltip && envEffect && (() => {
-                if (!tooltipPosition || typeof window === 'undefined') return null;
-                const rect = cardRef.current?.getBoundingClientRect();
-                if (!rect) return null;
-                
-                const style: React.CSSProperties = {
-                    position: 'fixed',
-                    bottom: `${window.innerHeight - rect.top}px`,
-                    left: `${rect.left + rect.width / 2}px`,
-                    transform: 'translateX(-50%)',
-                    marginBottom: '8px',
-                    zIndex: 999999,
-                };
-
-                return createPortal(
-                    <div 
-                        className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur pointer-events-none"
-                        style={style}
-                    >
-                        <div className="text-xs uppercase tracking-wider text-cyan-300 mb-2 flex items-center gap-2">
-                            <span>{envEffect.icon}</span>
-                            <span>Environment</span>
-                        </div>
-                        <div className="text-sm font-semibold text-amber-100 mb-1">{envEffect.label}</div>
-                        <p className="text-xs text-slate-100 font-sans leading-relaxed">{envEffect.description}</p>
-                    </div>,
-                    document.body
-                );
-            })()}
+            {showEnvTooltip && envEffect && renderTooltip(
+                <>
+                    <div className="text-xs uppercase tracking-wider text-cyan-300 mb-2 flex items-center gap-2">
+                        <span>{envEffect.icon}</span>
+                        <span>Environment</span>
+                    </div>
+                    <div className="text-sm font-semibold text-amber-100 mb-1">{envEffect.label}</div>
+                    <p className="text-xs text-slate-100 font-sans leading-relaxed">{envEffect.description}</p>
+                </>,
+                true,
+                true
+            )}
         </div>
     );
 };

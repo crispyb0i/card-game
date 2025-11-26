@@ -69,7 +69,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
     const { play: playLose } = useSound('/sounds/lose-sting.mp3', 0.9);
 
     // Helper to check win condition and update state
-    const checkAndSetWinner = (currentBoard: Board, startingPlayer: Player) => {
+    const checkAndSetWinner = useCallback((currentBoard: Board, startingPlayer: Player) => {
         const winner = checkWinCondition(currentBoard, startingPlayer);
         if (winner) {
             // Play win/lose jingle
@@ -88,7 +88,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
             return winner;
         }
         return null;
-    };
+    }, [playWin, playLose]);
 
     const drawCard = (state: GameState, player: 'player' | 'opponent'): Partial<GameState> => {
         if (player === 'player') {
@@ -144,7 +144,15 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
             );
 
             if (abilityResult.board) {
-                newBoard = abilityResult.board;
+                // Normalize the board to ensure baseStats is explicitly set on all cards
+                newBoard = abilityResult.board.map((slot) => {
+                    if (!slot) return null;
+                    return {
+                        ...slot,
+                        stats: { ...slot.stats },
+                        baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
+                    };
+                });
             }
 
             const placedCard = (newBoard[index] ?? cardClone);
@@ -202,7 +210,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
         });
 
         setPreviewCaptures([]);
-    }, [gameState.winner, gameState.board]);
+    }, [gameState.winner, gameState.board, checkAndSetWinner, playCardCapture, playCardPlace]);
 
     const handleHover = useCallback((card: Card | null, index: number) => {
         if (!card || gameState.board[index] !== null) {

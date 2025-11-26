@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card as CardType } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
@@ -10,15 +10,16 @@ interface ShopProps {
 }
 
 export const Shop: React.FC<ShopProps> = ({ onBack }) => {
-    const [credits, setCredits] = useState(0);
+    const [credits, setCredits] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const savedCredits = localStorage.getItem('credits');
+            return savedCredits ? parseInt(savedCredits) : 1000; // Start with 1000 credits
+        }
+        return 1000;
+    });
     const [openedCards, setOpenedCards] = useState<CardType[] | null>(null);
     const [isOpening, setIsOpening] = useState(false);
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
-
-    useEffect(() => {
-        const savedCredits = localStorage.getItem('credits');
-        setCredits(savedCredits ? parseInt(savedCredits) : 1000); // Start with 1000 credits
-    }, []);
 
     const buyPack = () => {
         if (credits < 100) {
@@ -66,8 +67,9 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
             // For now, we assume Inventory component reloads from source of truth, 
             // but we haven't implemented a persistent "Owned Cards" list in localStorage yet.
             // Let's do that now.
-            const savedInv = localStorage.getItem('inventory');
-            const currentInv = savedInv ? JSON.parse(savedInv) : [];
+            // TODO: Implement inventory persistence
+            // const savedInv = localStorage.getItem('inventory');
+            // const currentInv = savedInv ? JSON.parse(savedInv) : [];
             // We need to store just IDs or full objects? 
             // Inventory.tsx currently mocks "Give user all characters".
             // We should update Inventory to read from this storage if it exists.
