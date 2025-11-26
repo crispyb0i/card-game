@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card as CardType, Rarity } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
@@ -35,6 +35,20 @@ const RARITY_LIMITS: Partial<Record<Rarity, number>> = {
     rare: 3,
 };
 
+// Default deck for first-time players
+const DEFAULT_DECK_CHARACTER_IDS: string[] = [
+    'dragon',        // Legendary
+    'wizard',        // Epic
+    'golem',         // Epic
+    'knight',        // Rare
+    'ranger',        // Rare
+    'battle-priest', // Rare
+    'squire',        // Common
+    'shield-bearer', // Common
+    'sky-scout',     // Common
+    'river-wisp',    // Common
+];
+
 interface InventoryProps {
     onBack: () => void;
     onSaveDeck: (deck: CardType[]) => void;
@@ -57,38 +71,49 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
         }))
     );
 
+    // Helper function to map character IDs to deck slots
+    const mapCharacterIdsToDeck = (characterIds: string[], cards: CardType[]): (string | null)[] => {
+        const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
+
+        characterIds.forEach(charId => {
+            const foundCard = cards.find(c => c.characterId === charId);
+            if (foundCard) {
+                // Find first available slot for this rarity
+                for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
+                    if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
+                        newDeck[i] = foundCard.id;
+                        break;
+                    }
+                }
+            }
+        });
+
+        return newDeck;
+    };
+
     // selectedDeck now stores card IDs indexed by slot position
-    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(() => {
-        // Load saved deck or default to empty slots
+    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(Array(DECK_SIZE).fill(null));
+
+    // Initialize deck from saved or default
+    useEffect(() => {
         const savedDeck = localStorage.getItem('playerDeck');
         if (savedDeck) {
             try {
                 const savedCharacterIds: string[] = JSON.parse(savedDeck);
-                // Map character IDs back to inventory IDs and place them in appropriate slots
-                const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
-
-                savedCharacterIds.forEach(charId => {
-                    const foundCard = ownedCards.find(c => c.characterId === charId);
-                    if (foundCard) {
-                        // Find first available slot for this rarity
-                        for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
-                            if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
-                                newDeck[i] = foundCard.id;
-                                break;
-                            }
-                        }
-                    }
-                });
-
-                return newDeck;
+                const mappedDeck = mapCharacterIdsToDeck(savedCharacterIds, ownedCards);
+                setSelectedDeck(mappedDeck);
             } catch (e) {
                 console.error("Failed to load deck", e);
-                return Array(DECK_SIZE).fill(null);
+                // Fall through to default deck
+                const defaultDeck = mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
+                setSelectedDeck(defaultDeck);
             }
         } else {
-            return Array(DECK_SIZE).fill(null);
+            // No saved deck - use default deck
+            const defaultDeck = mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
+            setSelectedDeck(defaultDeck);
         }
-    });
+    }, [ownedCards]);
     const [filter, setFilter] = useState<Rarity | 'all'>('all');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);

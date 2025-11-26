@@ -180,23 +180,16 @@ export const Game: React.FC = () => {
                                     {gameState.winner === 'player' ? 'VICTORY' : gameState.winner === 'opponent' ? 'DEFEAT' : 'DRAW'}
                                 </h2>
                                 {(() => {
-                                    const { playerScore, opponentScore, playerBoard, opponentBoard, secondPlayer } = computeFinalScores(
+                                    const { playerScore, opponentScore } = computeFinalScores(
                                         gameState.board,
                                         gameState.startingPlayer,
                                     );
                                     return (
                                         <div className="mb-4 text-sm text-slate-200 font-sans text-center">
-                                            <div className="mb-1">
+                                            <div>
                                                 Final score: <span className="text-amber-300 font-semibold">You {playerScore}</span>{' '}
                                                 <span className="text-slate-400">vs</span>{' '}
                                                 <span className="text-red-300 font-semibold">{opponentScore} Opponent</span>
-                                            </div>
-                                            <div className="text-xs text-slate-400">
-                                                (Board: You {playerBoard} – {opponentBoard} Opponent
-                                                {secondPlayer === 'player'
-                                                    ? ', +1 second-player bonus to you'
-                                                    : ', +1 second-player bonus to opponent'}
-                                                )
                                             </div>
                                         </div>
                                     );
