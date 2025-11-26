@@ -262,7 +262,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                             e.stopPropagation();
                                             setPreviewCard(card);
                                         }}
-                                        className="absolute top-12 -right-4 w-8 h-8 -translate-x-0.5 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-20 backdrop-blur-sm"
+                                        className="absolute top-6 -right-4 w-8 h-8 -translate-x-0.5 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-99 backdrop-blur-sm"
                                         title="Preview card"
                                     >
                                         👁

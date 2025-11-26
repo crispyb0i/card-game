@@ -65,33 +65,35 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         id: 'bull-charge',
         name: 'Bull Charge',
         trigger: 'onReveal',
-        text: 'On Reveal: Charges straight up, battling through up to two enemy cards in this column using its top vs their bottom.',
+        text: 'On Reveal: Charges vertically in both directions, battling through up to two enemy cards in this column using its top vs their bottom.',
         onReveal: ({ board, index, card }) => {
             const row = Math.floor(index / BOARD_SIZE);
             const col = index % BOARD_SIZE;
 
-            // Charge direction: Player charges UP (-1), Opponent charges DOWN (+1)
-            const direction = card.owner === 'player' ? -1 : 1;
+            // Charge in both vertical directions (up and down)
+            const directions = [-1, 1]; // -1 = up, +1 = down
 
-            // Charge up to 2 spaces
-            for (let offset = 1; offset <= 2; offset++) {
-                const targetRow = row + (offset * direction);
-                if (targetRow < 0 || targetRow >= BOARD_SIZE) break;
+            directions.forEach(direction => {
+                // Charge up to 2 spaces in each direction
+                for (let offset = 1; offset <= 2; offset++) {
+                    const targetRow = row + (offset * direction);
+                    if (targetRow < 0 || targetRow >= BOARD_SIZE) break;
 
-                const targetIndex = targetRow * BOARD_SIZE + col;
-                const target = board[targetIndex];
+                    const targetIndex = targetRow * BOARD_SIZE + col;
+                    const target = board[targetIndex];
 
-                // Stop if we hit an empty space or an ally
-                if (!target || target.owner === card.owner) break;
+                    // Stop if we hit an empty space or an ally
+                    if (!target || target.owner === card.owner) break;
 
-                const attackerStat = card.stats.top;
-                const defenderStat = target.stats.bottom;
+                    const attackerStat = card.stats.top;
+                    const defenderStat = target.stats.bottom;
 
-                // Capture if attacker wins
-                if (attackerStat > defenderStat) {
-                    board[targetIndex] = { ...target, owner: card.owner };
+                    // Capture if attacker wins
+                    if (attackerStat > defenderStat) {
+                        board[targetIndex] = { ...target, owner: card.owner };
+                    }
                 }
-            }
+            });
 
             return { board };
         },
@@ -127,7 +129,7 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         id: 'assassin',
         name: 'Assassin',
         trigger: 'onReveal',
-        text: 'On Reveal: Destroy the card opposite to this one (if enemy).',
+        text: 'On Reveal: Destroys the enemy card at the mirrored position across the board.',
         onReveal: ({ board, index, card }) => {
             // "Opposite" usually implies across the board or specific direction. 
             // For simplicity, let's say it targets the card directly above (if player) or below (if opponent).

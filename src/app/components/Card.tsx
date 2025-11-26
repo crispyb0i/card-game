@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Card as CardType } from '../../lib/types';
 import Image from 'next/image';
 import { getModifierBreakdown } from '../../lib/abilities';
@@ -66,6 +67,8 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
     const [showAbilityTooltip, setShowAbilityTooltip] = React.useState(false);
     const [showStatsTooltip, setShowStatsTooltip] = React.useState(false);
     const [showEnvTooltip, setShowEnvTooltip] = React.useState(false);
+    const [tooltipPosition, setTooltipPosition] = React.useState<{ top: number; left: number } | null>(null);
+    const cardRef = React.useRef<HTMLDivElement>(null);
     const prevOwnerRef = React.useRef(card.owner);
 
     React.useEffect(() => {
@@ -128,9 +131,45 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
         return value > 0 ? `+${value}` : `${value}`;
     };
 
+    // Update tooltip position when showing tooltips
+    React.useEffect(() => {
+        if ((showAbilityTooltip || showStatsTooltip || showEnvTooltip) && cardRef.current) {
+            const rect = cardRef.current.getBoundingClientRect();
+            setTooltipPosition({
+                top: rect.top + window.scrollY,
+                left: rect.right + window.scrollX + 8, // 8px margin (ml-2)
+            });
+        } else {
+            setTooltipPosition(null);
+        }
+    }, [showAbilityTooltip, showStatsTooltip, showEnvTooltip]);
+
+    const renderTooltip = (content: React.ReactNode, isBottom = false) => {
+        if (!tooltipPosition || typeof window === 'undefined') return null;
+        
+        const style: React.CSSProperties = {
+            position: 'fixed',
+            top: isBottom ? 'auto' : `${tooltipPosition.top}px`,
+            bottom: isBottom ? `${window.innerHeight - tooltipPosition.top}px` : 'auto',
+            left: `${tooltipPosition.left}px`,
+            zIndex: 999999,
+        };
+
+        return createPortal(
+            <div 
+                className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur pointer-events-none"
+                style={style}
+            >
+                {content}
+            </div>,
+            document.body
+        );
+    };
+
     return (
         <div
-            className={`relative inline-block ${showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[9999]' : ''
+            ref={cardRef}
+            className={`relative inline-block ${showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[99999]' : ''
                 }`}
         >
             <div
@@ -211,8 +250,8 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
             </div>
 
             {/* Stats Modifier Breakdown Tooltip */}
-            {showStatsTooltip && modifierBreakdown.length > 0 && (
-                <div className="absolute left-full top-0 ml-2 w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur z-[9999] pointer-events-none">
+            {showStatsTooltip && modifierBreakdown.length > 0 && renderTooltip(
+                <>
                     <div className="text-xs uppercase tracking-wider text-cyan-300 mb-3 font-bold">Stat Modifiers</div>
                     <div className="space-y-2">
                         {modifierBreakdown.map((breakdown, idx) => (
@@ -228,32 +267,51 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
                             </div>
                         ))}
                     </div>
-                </div>
+                </>
             )}
 
             {/* Ability Tooltip */}
-            {showAbilityTooltip && card.ability && (
-                <div className="absolute left-full top-0 ml-2 w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur z-[9999] pointer-events-none">
+            {showAbilityTooltip && card.ability && renderTooltip(
+                <>
                     <div className="text-xs uppercase tracking-wider text-amber-300 mb-2 flex items-center gap-2">
                         <span>{card.ability.trigger === 'onReveal' ? '💥' : '♾️'}</span>
                         <span>{card.ability.trigger === 'onReveal' ? 'On Reveal' : 'Ongoing'}</span>
                     </div>
                     <div className="text-lg font-semibold text-amber-100 mb-2">{card.ability.name}</div>
                     <p className="text-sm text-slate-100 font-sans leading-relaxed">{card.ability.text}</p>
-                </div>
+                </>
             )}
 
             {/* Environment Tooltip */}
-            {showEnvTooltip && envEffect && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur z-[9999] pointer-events-none">
-                    <div className="text-xs uppercase tracking-wider text-cyan-300 mb-2 flex items-center gap-2">
-                        <span>{envEffect.icon}</span>
-                        <span>Environment</span>
-                    </div>
-                    <div className="text-sm font-semibold text-amber-100 mb-1">{envEffect.label}</div>
-                    <p className="text-xs text-slate-100 font-sans leading-relaxed">{envEffect.description}</p>
-                </div>
-            )}
+            {showEnvTooltip && envEffect && (() => {
+                if (!tooltipPosition || typeof window === 'undefined') return null;
+                const rect = cardRef.current?.getBoundingClientRect();
+                if (!rect) return null;
+                
+                const style: React.CSSProperties = {
+                    position: 'fixed',
+                    bottom: `${window.innerHeight - rect.top}px`,
+                    left: `${rect.left + rect.width / 2}px`,
+                    transform: 'translateX(-50%)',
+                    marginBottom: '8px',
+                    zIndex: 999999,
+                };
+
+                return createPortal(
+                    <div 
+                        className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur pointer-events-none"
+                        style={style}
+                    >
+                        <div className="text-xs uppercase tracking-wider text-cyan-300 mb-2 flex items-center gap-2">
+                            <span>{envEffect.icon}</span>
+                            <span>Environment</span>
+                        </div>
+                        <div className="text-sm font-semibold text-amber-100 mb-1">{envEffect.label}</div>
+                        <p className="text-xs text-slate-100 font-sans leading-relaxed">{envEffect.description}</p>
+                    </div>,
+                    document.body
+                );
+            })()}
         </div>
     );
 };

@@ -249,13 +249,13 @@ export const CHARACTERS: Character[] = [
             id: 'assassin',
             name: 'Assassinate',
             trigger: 'onReveal',
-            text: 'On Reveal: Destroy the card opposite to this one (if enemy).'
+            text: 'On Reveal: Destroys the enemy card at the mirrored position across the board.'
         }
     },
     {
         id: 'gambler',
         name: 'Fortune Gambler',
-        stats: { top: 4, right: 4, bottom: 4, left: 4 },
+        stats: { top: 3, right: 3, bottom: 3, left: 3 },
         imageUrl: '/assets/gambler.png',
         description: 'Always bets on a winning hand.',
         rarity: 'epic',
@@ -355,7 +355,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'bull',
         name: 'Bull Boss',
-        stats: { top: 7, right: 5, bottom: 3, left: 3 },
+        stats: { top: 6, right: 3, bottom: 7, left: 2 },
         imageUrl: '/assets/bull-boss.png',
         description: 'Charges forward, crushing everything in its path.',
         rarity: 'legendary',
@@ -363,7 +363,7 @@ export const CHARACTERS: Character[] = [
             id: 'bull-charge',
             name: 'Bull Charge',
             trigger: 'onReveal',
-            text: 'On Reveal: Charges straight up, battling through up to two enemy cards in this column using its top vs their bottom.'
+            text: 'On Reveal: Charges vertically in both directions, battling through up to two enemy cards in this column using its top vs their bottom.'
         }
     },
     {
