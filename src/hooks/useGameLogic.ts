@@ -120,7 +120,14 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
 
         setGameState((prev) => {
             // 1. Place the card
-            let newBoard = [...prev.board];
+            let newBoard = prev.board.map((slot) => {
+                if (!slot) return null;
+                return {
+                    ...slot,
+                    stats: { ...slot.stats },
+                    baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
+                };
+            });
             // Deep clone the card to avoid mutating the hand/previous state
             // and to ensure abilities modify a fresh object
             const cardClone = {

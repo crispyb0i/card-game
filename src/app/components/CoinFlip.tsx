@@ -33,10 +33,10 @@ export default function CoinFlip({ onResult, show }: CoinFlipProps) {
             if (count >= totalFlips) {
                 window.clearInterval(interval);
                 setActiveSide(chosen);
-                setFlipping(false);
                 stopDecider();
                 window.setTimeout(() => {
                     onResult(chosen);
+                    setFlipping(false);
                 }, 700);
             }
         }, 100);
