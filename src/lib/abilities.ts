@@ -426,33 +426,37 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         },
     },
     'invisible': { id: 'invisible', name: 'Invisible', trigger: 'ongoing', text: 'Ongoing: Cannot be targeted by enemy abilities.', ongoing: () => [] },
-    'study': {
-        id: 'study',
-        name: 'Study',
-        trigger: 'onReveal',
-        text: 'On Reveal: Gains +1 to all stats for each card in your hand.',
-        onReveal: ({ board, card, gameState }) => {
-            if (!gameState) return { board };
+    'arcane-insight': {
+        id: 'arcane-insight',
+        name: 'Arcane Insight',
+        trigger: 'ongoing',
+        text: 'Ongoing: Gains +1 to all stats for each adjacent card with an ability.',
+        ongoing: ({ board, sourceIndex, card }) => {
+            const neighbors = getAdjacentIndices(sourceIndex);
+            let abilityCount = 0;
 
-            const hand = card.owner === 'player' ? gameState.playerHand : gameState.opponentHand;
-            const bonus = hand.length;
+            neighbors.forEach(idx => {
+                const neighbor = board[idx];
+                if (neighbor && neighbor.ability) {
+                    abilityCount++;
+                }
+            });
 
-            if (bonus > 0) {
-                card.stats.top += bonus;
-                card.stats.right += bonus;
-                card.stats.bottom += bonus;
-                card.stats.left += bonus;
-
-                // Update base stats to persist
-                if (card.baseStats) {
-                    card.baseStats.top += bonus;
-                    card.baseStats.right += bonus;
-                    card.baseStats.bottom += bonus;
-                    card.baseStats.left += bonus;
+            if (abilityCount > 0) {
+                const sourceCardIndex = board.findIndex(c => c?.id === card.id);
+                if (sourceCardIndex !== -1) {
+                    return [{
+                        targetIndex: sourceCardIndex,
+                        modifier: { 
+                            top: abilityCount, 
+                            right: abilityCount, 
+                            bottom: abilityCount, 
+                            left: abilityCount 
+                        }
+                    }];
                 }
             }
-
-            return { board };
+            return [];
         },
     },
     'aura': { id: 'aura', name: 'Aura', trigger: 'ongoing', text: 'Ongoing: Adjacent allies gain +1.', ongoing: () => [] },

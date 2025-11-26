@@ -269,7 +269,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'echo-mage',
         name: 'Echo Mage',
-        stats: { top: 3, right: 6, bottom: 3, left: 6 },
+        stats: { top: 3, right: 4, bottom: 3, left: 4 },
         imageUrl: '/assets/echo-mage.png',
         description: 'Repeats the last spell cast on the battlefield.',
         rarity: 'epic',
@@ -299,13 +299,13 @@ export const CHARACTERS: Character[] = [
         name: 'Arcane Scholar',
         stats: { top: 1, right: 3, bottom: 1, left: 3 },
         imageUrl: '/assets/arcane-scholar.png',
-        description: 'Grows stronger the more options you keep in hand.',
+        description: 'Learns from nearby magical effects.',
         rarity: 'epic',
         ability: {
-            id: 'study',
-            name: 'Study',
-            trigger: 'onReveal',
-            text: 'On Reveal: Gains +1 to all stats for each card in your hand.'
+            id: 'arcane-insight',
+            name: 'Arcane Insight',
+            trigger: 'ongoing',
+            text: 'Ongoing: Gains +1 to all stats for each adjacent card with an ability.'
         }
     },
 

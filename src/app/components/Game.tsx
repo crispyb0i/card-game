@@ -9,6 +9,7 @@ import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
 import { HowToPlay } from './HowToPlay';
 import CoinFlip from './CoinFlip';
+import { CHARACTERS } from '../../lib/cards';
 
 const computeFinalScores = (board: BoardState, startingPlayer: Player) => {
     let playerCount = 0;
@@ -231,10 +232,35 @@ export const Game: React.FC = () => {
 
             {previewCard && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
                     onClick={() => setPreviewCard(null)}
                 >
-                    <Card card={previewCard} className="scale-[3.5] shadow-2xl" />
+                    <div
+                        className="flex flex-col items-center"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="mb-24">
+                            <Card card={previewCard} className="scale-[2] shadow-2xl" />
+                        </div>
+                        
+                        {/* Description */}
+                        {previewCard.characterId && (() => {
+                            const character = CHARACTERS.find(c => c.id === previewCard.characterId);
+                            return character?.description ? (
+                                <div className="w-80 mb-4 text-center">
+                                    <div className="text-slate-400 text-sm italic">{character.description}</div>
+                                </div>
+                            ) : null;
+                        })()}
+                        
+                        {/* Ability Info below card */}
+                        {previewCard.ability && (
+                            <div className="w-80 bg-slate-900/90 border border-slate-600 p-4 rounded-xl text-center">
+                                <div className="text-amber-300 font-bold mb-1">{previewCard.ability.name}</div>
+                                <div className="text-slate-300 text-sm">{previewCard.ability.text}</div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

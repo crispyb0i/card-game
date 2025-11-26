@@ -35,7 +35,7 @@ export type AbilityId =
     | 'swap' | 'pull' | 'anchor' | 'phantom'
     | 'echo' | 'amplify' | 'borrow' | 'suppression-field'
     | 'gambit' | 'sacrifice' | 'last-stand' | 'volatile'
-    | 'timeshift' | 'invisible' | 'study' | 'aura'
+    | 'timeshift' | 'invisible' | 'arcane-insight' | 'aura'
     | 'silence' | 'ranger-snipe' | 'lich-debuff' | 'knight-rally'
     | 'cleric-blessing' | 'dragon-fire' | 'void-drain';
 

@@ -380,25 +380,30 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                     onClick={() => setPreviewCard(null)}
                 >
                     <div
-                        className="relative transform transition-all animate-scale-in"
+                        className="flex flex-col items-center"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <Card card={previewCard} className="scale-[3.5] shadow-2xl" />
+                        <div className="mb-24">
+                            <Card card={previewCard} className="scale-[2] shadow-2xl" />
+                        </div>
 
-                        {/* Ability Info in Preview */}
+                        {/* Description */}
+                        {previewCard.characterId && (() => {
+                            const character = CHARACTERS.find(c => c.id === previewCard.characterId);
+                            return character?.description ? (
+                                <div className="w-80 mb-4 text-center">
+                                    <div className="text-slate-400 text-sm italic">{character.description}</div>
+                                </div>
+                            ) : null;
+                        })()}
+
+                        {/* Ability Info below card */}
                         {previewCard.ability && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-8 w-80 bg-slate-900/90 border border-slate-600 p-4 rounded-xl text-center">
+                            <div className="w-80 bg-slate-900/90 border border-slate-600 p-4 rounded-xl text-center">
                                 <div className="text-amber-300 font-bold mb-1">{previewCard.ability.name}</div>
                                 <div className="text-slate-300 text-sm">{previewCard.ability.text}</div>
                             </div>
                         )}
-
-                        <button
-                            onClick={() => setPreviewCard(null)}
-                            className="absolute -top-8 -right-8 w-10 h-10 rounded-full bg-slate-800 text-white text-lg font-bold flex items-center justify-center border border-slate-600 hover:bg-red-600 hover:border-red-500 transition-all shadow-xl"
-                        >
-                            ✕
-                        </button>
                     </div>
                 </div>
             )}
