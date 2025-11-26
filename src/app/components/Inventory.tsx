@@ -1,9 +1,39 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card as CardType, Rarity } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
+import { Toast } from './Toast';
+
+const DECK_SIZE = 10;
+
+// Define slot structure: 1 legendary, 2 epic, 3 rare, 4 common
+const SLOT_STRUCTURE: Rarity[] = [
+    'legendary',    // Slot 0
+    'epic',         // Slot 1
+    'epic',         // Slot 2
+    'rare',         // Slot 3
+    'rare',         // Slot 4
+    'rare',         // Slot 5
+    'common',       // Slot 6
+    'common',       // Slot 7
+    'common',       // Slot 8
+    'common',       // Slot 9
+];
+
+const RARITY_COLORS: Record<Rarity, string> = {
+    legendary: 'border-yellow-500',
+    epic: 'border-purple-500',
+    rare: 'border-blue-500',
+    common: 'border-slate-600',
+};
+
+const RARITY_LIMITS: Partial<Record<Rarity, number>> = {
+    legendary: 1,
+    epic: 2,
+    rare: 3,
+};
 
 interface InventoryProps {
     onBack: () => void;
@@ -11,71 +41,136 @@ interface InventoryProps {
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
-    const [ownedCards, setOwnedCards] = useState<CardType[]>(() => {
-        return CHARACTERS.map((char, i) => ({
+    // Create inventory cards with unique IDs
+    const [ownedCards] = useState<CardType[]>(() =>
+        CHARACTERS.map((char, i) => ({
             id: `inv-${char.id}-${i}`,
             name: char.name,
-            stats: char.stats,
             imageUrl: char.imageUrl,
-            owner: 'player',
+            stats: { ...char.stats },
+            baseStats: { ...char.stats },
+            owner: 'player' as const,
             rarity: char.rarity,
-            variant: 'base',
-            characterId: char.id, // Store the base character ID
+            variant: 'base' as const,
+            characterId: char.id,
             ability: char.ability,
-        }));
-    });
+        }))
+    );
 
-    const [selectedDeck, setSelectedDeck] = useState<string[]>([]); // IDs of selected cards
-    const [filter, setFilter] = useState<Rarity | 'all'>('all');
-    const [previewCard, setPreviewCard] = useState<CardType | null>(null);
-
-    // Initialize Deck
-    useEffect(() => {
-        // Load saved deck or default to first 5
+    // selectedDeck now stores card IDs indexed by slot position
+    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(() => {
+        // Load saved deck or default to empty slots
         const savedDeck = localStorage.getItem('playerDeck');
         if (savedDeck) {
             try {
                 const savedCharacterIds: string[] = JSON.parse(savedDeck);
-                // Map character IDs back to inventory IDs
-                const loadedDeckIds = savedCharacterIds
-                    .map(charId => {
-                        const foundCard = ownedCards.find(c => c.characterId === charId);
-                        return foundCard ? foundCard.id : null;
-                    })
-                    .filter((id): id is string => id !== null);
+                // Map character IDs back to inventory IDs and place them in appropriate slots
+                const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
 
-                setSelectedDeck(loadedDeckIds);
+                savedCharacterIds.forEach(charId => {
+                    const foundCard = ownedCards.find(c => c.characterId === charId);
+                    if (foundCard) {
+                        // Find first available slot for this rarity
+                        for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
+                            if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
+                                newDeck[i] = foundCard.id;
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                return newDeck;
             } catch (e) {
                 console.error("Failed to load deck", e);
-                setSelectedDeck(ownedCards.slice(0, 5).map(c => c.id));
+                return Array(DECK_SIZE).fill(null);
             }
         } else {
-            setSelectedDeck(ownedCards.slice(0, 5).map(c => c.id));
+            return Array(DECK_SIZE).fill(null);
         }
-    }, [ownedCards]);
+    });
+    const [filter, setFilter] = useState<Rarity | 'all'>('all');
+    const [previewCard, setPreviewCard] = useState<CardType | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     const toggleCard = (cardId: string) => {
-        if (selectedDeck.includes(cardId)) {
-            setSelectedDeck(prev => prev.filter(id => id !== cardId));
+        const card = ownedCards.find(c => c.id === cardId);
+        if (!card) return;
+
+        // Check if card is already in deck
+        const existingSlotIndex = selectedDeck.indexOf(cardId);
+
+        if (existingSlotIndex !== -1) {
+            // Remove card
+            setSelectedDeck(prev => {
+                const newDeck = [...prev];
+                newDeck[existingSlotIndex] = null;
+                return newDeck;
+            });
         } else {
-            if (selectedDeck.length < 10) {
-                setSelectedDeck(prev => [...prev, cardId]);
-            } else {
-                alert("Deck is full! Remove a card first.");
+            // Find first available slot for this rarity
+            let targetSlot = -1;
+            for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
+                if (SLOT_STRUCTURE[i] === card.rarity && selectedDeck[i] === null) {
+                    targetSlot = i;
+                    break;
+                }
             }
+
+            if (targetSlot === -1) {
+                showToast(`No available ${card.rarity} slots. Remove a ${card.rarity} card first.`, 'warning');
+                return;
+            }
+
+            setSelectedDeck(prev => {
+                const newDeck = [...prev];
+                newDeck[targetSlot] = cardId;
+                return newDeck;
+            });
         }
     };
 
     const handleSave = () => {
-        if (selectedDeck.length !== 10) {
-            alert("You must select exactly 10 cards.");
+        // Filter out nulls to get actual selected cards
+        const currentDeckCardIds = selectedDeck.filter((id): id is string => id !== null);
+
+        if (currentDeckCardIds.length !== DECK_SIZE) {
+            showToast(`You must select exactly ${DECK_SIZE} cards.`, 'warning');
             return;
         }
-        const deckCards = ownedCards.filter(c => selectedDeck.includes(c.id));
+        const deckCards = ownedCards.filter(c => currentDeckCardIds.includes(c.id));
+
+        // Enforce rarity limits (e.g., 1 legendary, 2 epic, 3 rare)
+        const rarityCounts: Record<Rarity, number> = {
+            common: 0,
+            rare: 0,
+            epic: 0,
+            legendary: 0,
+        };
+
+        deckCards.forEach((card) => {
+            rarityCounts[card.rarity] += 1;
+        });
+
+        for (const [rarity, limit] of Object.entries(RARITY_LIMITS)) {
+            const typedRarity = rarity as Rarity;
+            const maxAllowed = limit as number | undefined;
+            if (maxAllowed !== undefined && rarityCounts[typedRarity] > maxAllowed) {
+                showToast(`Too many ${typedRarity.toUpperCase()} cards. Maximum allowed is ${maxAllowed}.`, 'error');
+                return;
+            }
+        }
+
         // Save character IDs instead of full card IDs
         const characterIds = deckCards.map(c => c.characterId || c.id.replace(/^inv-/, '').replace(/-\d+$/, ''));
         localStorage.setItem('playerDeck', JSON.stringify(characterIds));
         onSaveDeck(deckCards);
+        showToast('Deck saved successfully!', 'success');
         onBack();
     };
 
@@ -88,9 +183,19 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
             {/* Left Column - Card Collection */}
             <div className="flex-1 p-8 overflow-y-auto h-screen">
                 <header className="flex justify-between items-center mb-8">
-                    <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
-                        Card Collection
-                    </h1>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-md border border-slate-600 hover:border-slate-400 transition-colors"
+                            title="Back to main menu"
+                        >
+                            <span className="text-lg">←</span>
+                            <span>Back</span>
+                        </button>
+                        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
+                            Card Collection
+                        </h1>
+                    </div>
 
                     {/* Filters */}
                     <div className="flex gap-2">
@@ -123,7 +228,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                     <Card
                                         card={card}
                                         className={isSelected
-                                            ? 'grayscale opacity-60 ring-2 ring-emerald-500/50'
+                                            ? 'ring-2 ring-emerald-500/50 opacity-50 grayscale hover:opacity-60'
                                             : 'opacity-90 hover:opacity-100 hover:scale-105'}
                                     />
                                 </div>
@@ -157,39 +262,42 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                     <h2 className="text-2xl font-bold text-amber-100 mb-2">Your Deck</h2>
                     <div className="text-sm text-slate-400 font-sans flex justify-between items-center">
                         <span>Selected Cards</span>
-                        <span className={selectedDeck.length === 10 ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
-                            {selectedDeck.length}/10
+                        <span className={selectedDeck.filter(id => id !== null).length === DECK_SIZE ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                            {selectedDeck.filter(id => id !== null).length}/{DECK_SIZE}
                         </span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                        Deck rules: up to 1 Legendary, 2 Epic, 3 Rare cards (rest Common).
                     </div>
                     {/* Progress Bar */}
                     <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
                         <div
-                            className={`h-full transition-all duration-300 ${selectedDeck.length === 10 ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                            style={{ width: `${(selectedDeck.length / 10) * 100}%` }}
+                            className={`h-full transition-all duration-300 ${selectedDeck.filter(id => id !== null).length === DECK_SIZE ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${(selectedDeck.filter(id => id !== null).length / DECK_SIZE) * 100}%` }}
                         />
                     </div>
                 </div>
 
-                {/* Selected Cards List - Vertical Stack */}
                 {/* Selected Cards List - Grid */}
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                    {selectedDeck.length === 0 && (
+                    {selectedDeck.every(id => id === null) && (
                         <div className="text-slate-600 italic text-center py-10 border-2 border-dashed border-slate-800 rounded-xl">
                             Select cards from the collection to build your deck.
                         </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-3 pb-4">
-                        {/* Render exactly 10 slots */}
-                        {Array.from({ length: 10 }).map((_, index) => {
-                            const cardId = selectedDeck[index];
+                        {/* Render exactly DECK_SIZE slots with rarity-based colors */}
+                        {selectedDeck.map((cardId, index) => {
                             const card = cardId ? ownedCards.find(c => c.id === cardId) : null;
+                            const slotRarity = SLOT_STRUCTURE[index];
+                            const borderColor = RARITY_COLORS[slotRarity];
 
                             if (card) {
                                 return (
                                     <div
-                                        key={card.id}
-                                        className="relative group animate-fade-in-left w-full aspect-[3/4] flex items-center justify-center cursor-pointer"
+                                        key={`slot-${index}-${card.id}`}
+                                        className={`relative group animate-fade-in-left w-full aspect-[3/4] flex items-center justify-center cursor-pointer border-4 ${borderColor} rounded-lg`}
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             toggleCard(card.id);
@@ -206,9 +314,16 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                     </div>
                                 );
                             } else {
+                                // Empty slot with colored border
                                 return (
-                                    <div key={`empty-${index}`} className="w-full aspect-[3/4] rounded-lg border-2 border-dashed border-slate-800 bg-slate-900/50 flex items-center justify-center">
-                                        <span className="text-slate-700 text-xs font-bold">{index + 1}</span>
+                                    <div
+                                        key={`empty-${index}`}
+                                        className={`w-full aspect-[3/4] rounded-lg border-4 border-dashed ${borderColor} bg-slate-900/50 flex flex-col items-center justify-center`}
+                                    >
+                                        <span className="text-slate-700 text-xs font-bold mb-1">{index + 1}</span>
+                                        <span className="text-slate-600 text-[10px] uppercase tracking-wider">
+                                            {slotRarity}
+                                        </span>
                                     </div>
                                 );
                             }
@@ -243,7 +358,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                         className="relative transform transition-all animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <Card card={previewCard} className="scale-150 shadow-2xl" />
+                        <Card card={previewCard} className="scale-[3.5] shadow-2xl" />
 
                         {/* Ability Info in Preview */}
                         {previewCard.ability && (
@@ -261,6 +376,14 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                         </button>
                     </div>
                 </div>
+            )}
+            {/* Toast Notification */}
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
             )}
         </div>
     );

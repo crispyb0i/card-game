@@ -6,6 +6,8 @@ export type Variant = 'base' | 'pixel' | 'foil' | 'glitch';
 
 export type MapId = 'none' | 'ancient-ruins' | 'arcane-library' | 'volcanic-rift' | 'royal-arena';
 
+export type AIDifficulty = 'easy' | 'normal' | 'hard';
+
 export interface MapDefinition {
     id: MapId;
     name: string;
@@ -34,7 +36,8 @@ export type AbilityId =
     | 'echo' | 'amplify' | 'borrow' | 'suppression-field'
     | 'gambit' | 'sacrifice' | 'last-stand' | 'volatile'
     | 'timeshift' | 'invisible' | 'study' | 'aura'
-    | 'silence';
+    | 'silence' | 'ranger-snipe' | 'lich-debuff' | 'knight-rally'
+    | 'cleric-blessing' | 'dragon-fire' | 'void-drain';
 
 export type AbilityTrigger = 'onReveal' | 'ongoing';
 
@@ -73,6 +76,7 @@ export interface GameState {
     opponentHand: Card[];
     opponentDeck: Card[];
     currentPlayer: Player;
+    startingPlayer: Player;
     winner: Player | 'draw' | null;
     activeEffects?: string[]; // e.g. 'delay-reveal'
     currentMapId?: MapId;

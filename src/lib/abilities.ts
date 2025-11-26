@@ -32,13 +32,13 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         id: 'guardian-aura',
         name: 'Guardian Aura',
         trigger: 'ongoing',
-        text: 'Ongoing: Allied cards gain +1 top and +1 right.',
+        text: 'Ongoing: Allied cards gain +1 left.',
         ongoing: ({ board, card }) =>
             board.reduce<{ targetIndex: number; modifier: StatModifier }[]>((acc, slot, targetIndex) => {
                 if (slot && slot.owner === card.owner) {
                     acc.push({
                         targetIndex,
-                        modifier: { top: 1, right: 1 },
+                        modifier: { left: 1 },
                     });
                 }
                 return acc;
@@ -328,7 +328,45 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             return { board };
         },
     },
-    'sacrifice': { id: 'sacrifice', name: 'Sacrifice', trigger: 'onReveal', text: 'On Reveal: Destroy an adjacent ally to gain its stats.', ongoing: () => [] },
+    'sacrifice': {
+        id: 'sacrifice',
+        name: 'Sacrifice',
+        trigger: 'onReveal',
+        text: 'On Reveal: Destroy an adjacent ally to gain its stats.',
+        onReveal: ({ board, index, card }) => {
+            const neighbors = getAdjacentIndices(index);
+            // Find adjacent ally with highest total stats
+            let bestAllyIndex: number | null = null;
+            let bestAllyCard: Card | null = null;
+            let maxTotal = 0;
+
+            neighbors.forEach(idx => {
+                const neighbor = board[idx];
+                if (neighbor && neighbor.owner === card.owner && neighbor.id !== card.id) {
+                    const total = neighbor.stats.top + neighbor.stats.right + neighbor.stats.bottom + neighbor.stats.left;
+                    if (total > maxTotal) {
+                        maxTotal = total;
+                        bestAllyIndex = idx;
+                        bestAllyCard = neighbor;
+                    }
+                }
+            });
+
+            if (bestAllyIndex !== null && bestAllyCard !== null) {
+                const ally: Card = bestAllyCard;
+                // Gain the ally's stats
+                card.stats.top += ally.stats.top;
+                card.stats.right += ally.stats.right;
+                card.stats.bottom += ally.stats.bottom;
+                card.stats.left += ally.stats.left;
+
+                // Destroy the ally
+                board[bestAllyIndex] = null;
+            }
+
+            return { board };
+        },
+    },
     'last-stand': { id: 'last-stand', name: 'Last Stand', trigger: 'ongoing', text: 'Ongoing: If this is your last card, it gains +5 to all sides.', ongoing: () => [] },
     'volatile': {
         id: 'volatile',
@@ -432,6 +470,171 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
                     delete target.ability;
                 }
             });
+            return { board };
+        },
+    },
+    'ranger-snipe': {
+        id: 'ranger-snipe',
+        name: 'Long Shot',
+        trigger: 'onReveal',
+        text: 'On Reveal: Attacks cards that are 2 slots away in all directions.',
+        onReveal: ({ board, index, card }) => {
+            const row = Math.floor(index / BOARD_SIZE);
+            const col = index % BOARD_SIZE;
+
+            // Directions: Top, Right, Bottom, Left (2 slots away)
+            const targets = [
+                { r: -2, c: 0, attackStat: 'top', defendStat: 'bottom' },
+                { r: 0, c: 2, attackStat: 'right', defendStat: 'left' },
+                { r: 2, c: 0, attackStat: 'bottom', defendStat: 'top' },
+                { r: 0, c: -2, attackStat: 'left', defendStat: 'right' },
+            ] as const;
+
+            targets.forEach(({ r, c, attackStat, defendStat }) => {
+                const targetRow = row + r;
+                const targetCol = col + c;
+
+                if (targetRow >= 0 && targetRow < BOARD_SIZE && targetCol >= 0 && targetCol < BOARD_SIZE) {
+                    // Ensure there is no card in the intermediate tile (exactly 1 slot away)
+                    const midRow = row + r / 2;
+                    const midCol = col + c / 2;
+                    if (
+                        midRow >= 0 &&
+                        midRow < BOARD_SIZE &&
+                        midCol >= 0 &&
+                        midCol < BOARD_SIZE &&
+                        board[midRow * BOARD_SIZE + midCol]
+                    ) {
+                        // Line of sight is blocked by an adjacent card; do not hit the distant one.
+                        return;
+                    }
+
+                    const targetIndex = targetRow * BOARD_SIZE + targetCol;
+                    const target = board[targetIndex];
+
+                    if (target && target.owner !== card.owner) {
+                        if (card.stats[attackStat] > target.stats[defendStat]) {
+                            board[targetIndex] = { ...target, owner: card.owner };
+                        }
+                    }
+                }
+            });
+
+            return { board };
+        },
+    },
+    'lich-debuff': {
+        id: 'lich-debuff',
+        name: 'Death Aura',
+        trigger: 'ongoing',
+        text: 'Ongoing: Adjacent enemy cards lose -2 to all stats.',
+        ongoing: ({ board, sourceIndex, card }) => {
+            const neighbors = getAdjacentIndices(sourceIndex);
+            const modifiers: { targetIndex: number; modifier: StatModifier }[] = [];
+
+            neighbors.forEach(idx => {
+                const neighbor = board[idx];
+                if (neighbor && neighbor.owner !== card.owner) {
+                    modifiers.push({
+                        targetIndex: idx,
+                        modifier: { top: -2, right: -2, bottom: -2, left: -2 },
+                    });
+                }
+            });
+
+            return modifiers;
+        },
+    },
+    'knight-rally': {
+        id: 'knight-rally',
+        name: 'Defensive Formation',
+        trigger: 'ongoing',
+        text: 'Ongoing: All allied cards gain +1 bottom.',
+        ongoing: ({ board, card }) => {
+            return board.reduce<{ targetIndex: number; modifier: StatModifier }[]>((acc, slot, targetIndex) => {
+                if (slot && slot.owner === card.owner) {
+                    acc.push({
+                        targetIndex,
+                        modifier: { bottom: 1 },
+                    });
+                }
+                return acc;
+            }, []);
+        },
+    },
+    'cleric-blessing': {
+        id: 'cleric-blessing',
+        name: 'Divine Blessing',
+        trigger: 'onReveal',
+        text: 'On Reveal: The next card you play gains +1 bottom.',
+        onReveal: ({ board }) => {
+            // TODO: Implement buff for next card - requires GameState.nextCardBuff tracking
+            // For now, this is a placeholder
+            return { board };
+        },
+    },
+    'dragon-fire': {
+        id: 'dragon-fire',
+        name: 'Dragon Fire',
+        trigger: 'ongoing',
+        text: 'Ongoing: Adjacent allied cards gain +2 top.',
+        ongoing: ({ board, sourceIndex, card }) => {
+            const neighbors = getAdjacentIndices(sourceIndex);
+            const modifiers: { targetIndex: number; modifier: StatModifier }[] = [];
+
+            neighbors.forEach(idx => {
+                const neighbor = board[idx];
+                if (neighbor && neighbor.owner === card.owner) {
+                    modifiers.push({
+                        targetIndex: idx,
+                        modifier: { top: 2 },
+                    });
+                }
+            });
+
+            return modifiers;
+        },
+    },
+    'void-drain': {
+        id: 'void-drain',
+        name: 'Void Drain',
+        trigger: 'onReveal',
+        text: 'On Reveal: Steals +1 from all stats of all enemy cards on the board.',
+        onReveal: ({ board, card }) => {
+            let totalDrained = 0;
+
+            // Drain from all enemy cards
+            board.forEach((slot) => {
+                if (slot && slot.owner !== card.owner) {
+                    // Reduce enemy stats by 1 (minimum 0)
+                    if (slot.stats.top > 0) {
+                        slot.stats.top -= 1;
+                        totalDrained++;
+                    }
+                    if (slot.stats.right > 0) {
+                        slot.stats.right -= 1;
+                        totalDrained++;
+                    }
+                    if (slot.stats.bottom > 0) {
+                        slot.stats.bottom -= 1;
+                        totalDrained++;
+                    }
+                    if (slot.stats.left > 0) {
+                        slot.stats.left -= 1;
+                        totalDrained++;
+                    }
+                }
+            });
+
+            // Add drained stats to Void Tyrant (distribute evenly)
+            const perStat = Math.floor(totalDrained / 4);
+            const remainder = totalDrained % 4;
+
+            card.stats.top += perStat + (remainder > 0 ? 1 : 0);
+            card.stats.right += perStat + (remainder > 1 ? 1 : 0);
+            card.stats.bottom += perStat + (remainder > 2 ? 1 : 0);
+            card.stats.left += perStat;
+
             return { board };
         },
     },

@@ -1,10 +1,11 @@
-import { Board, Card, Player, BOARD_SIZE } from './types';
+import { Board, Card, Player, Rarity, BOARD_SIZE } from './types';
 
 export const getIndex = (row: number, col: number) => row * BOARD_SIZE + col;
 export const getRowCol = (index: number) => ({ row: Math.floor(index / BOARD_SIZE), col: index % BOARD_SIZE });
 
 import { collectAllModifiers } from './abilities';
 import { MapId } from './types';
+import { Character, CHARACTERS } from './cards';
 
 export const calculateCapture = (board: Board, card: Card, index: number, mapId?: MapId): number[] => {
     const capturedIndices: number[] = [];
@@ -72,7 +73,7 @@ export const calculateCapture = (board: Board, card: Card, index: number, mapId?
     return capturedIndices;
 };
 
-export const checkWinCondition = (board: Board): Player | 'draw' | null => {
+export const checkWinCondition = (board: Board, startingPlayer?: Player): Player | 'draw' | null => {
     const isFull = board.every((slot) => slot !== null);
     if (!isFull) return null;
 
@@ -83,6 +84,16 @@ export const checkWinCondition = (board: Board): Player | 'draw' | null => {
         if (card?.owner === 'player') playerCount++;
         if (card?.owner === 'opponent') opponentCount++;
     });
+
+    // Triple Triad-style adjustment: the second player gets +1 for their unplayed card.
+    if (startingPlayer) {
+        const secondPlayer: Player = startingPlayer === 'player' ? 'opponent' : 'player';
+        if (secondPlayer === 'player') {
+            playerCount += 1;
+        } else {
+            opponentCount += 1;
+        }
+    }
 
     if (playerCount > opponentCount) return 'player';
     if (opponentCount > playerCount) return 'opponent';
@@ -98,33 +109,94 @@ export const generateRandomStats = (): { top: number; right: number; bottom: num
     };
 };
 
-import { CHARACTERS } from './cards';
-
 export const createDeck = (owner: Player, count: number = 5, characterIds?: string[]): Card[] => {
-    return Array.from({ length: count }).map((_, i) => {
-        let char;
+    if (characterIds && characterIds.length > 0) {
+        // Player deck - use provided character IDs
+        return Array.from({ length: count }).map((_, i) => {
+            let char;
 
-        if (characterIds && characterIds[i]) {
-            // Find character by ID
-            char = CHARACTERS.find(c => c.id === characterIds[i]);
-        }
+            if (characterIds[i]) {
+                char = CHARACTERS.find(c => c.id === characterIds[i]);
+            }
 
-        // Fallback to random if not found or not provided
-        if (!char) {
-            char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
-        }
+            // Fallback to random if not found
+            if (!char) {
+                char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+            }
 
-        return {
-            id: `${owner}-${i}-${Date.now()}`,
-            name: char.name,
-            imageUrl: char.imageUrl,
-            stats: { ...char.stats }, // Working stats (may be modified by maps/abilities)
-            baseStats: { ...char.stats }, // Immutable baseline for UI comparisons
-            owner,
-            rarity: char.rarity,
-            variant: 'base',
-            characterId: char.id,
-            ability: char.ability,
+            return {
+                id: `${owner}-${i}-${Date.now()}`,
+                name: char.name,
+                imageUrl: char.imageUrl,
+                stats: { ...char.stats },
+                baseStats: { ...char.stats },
+                owner,
+                rarity: char.rarity,
+                variant: 'base',
+                characterId: char.id,
+                ability: char.ability,
+            };
+        });
+    } else {
+        // AI deck - enforce rarity limits: 1 legendary, 2 epic, 3 rare, 4 common
+        const rarityLimits = {
+            legendary: 1,
+            epic: 2,
+            rare: 3,
+            common: 4,
         };
-    });
+
+        const deck: Card[] = [];
+        const usedCharacterIds = new Set<string>();
+
+        // Helper to get random character of specific rarity
+        const getRandomCharOfRarity = (rarity: Rarity): Character | null => {
+            const available = CHARACTERS.filter(
+                c => c.rarity === rarity && !usedCharacterIds.has(c.id)
+            );
+            if (available.length === 0) return null;
+            return available[Math.floor(Math.random() * available.length)];
+        };
+
+        // Build deck following rarity limits
+        for (const [rarity, limit] of Object.entries(rarityLimits)) {
+            for (let i = 0; i < limit; i++) {
+                const char = getRandomCharOfRarity(rarity as Rarity);
+                if (char) {
+                    usedCharacterIds.add(char.id);
+                    deck.push({
+                        id: `${owner}-${deck.length}-${Date.now()}`,
+                        name: char.name,
+                        imageUrl: char.imageUrl,
+                        stats: { ...char.stats },
+                        baseStats: { ...char.stats },
+                        owner,
+                        rarity: char.rarity,
+                        variant: 'base',
+                        characterId: char.id,
+                        ability: char.ability,
+                    });
+                }
+            }
+        }
+
+        // If we somehow don't have enough cards, fill with random commons
+        while (deck.length < count) {
+            const char = CHARACTERS.find(c => c.rarity === 'common') || CHARACTERS[0];
+            deck.push({
+                id: `${owner}-${deck.length}-${Date.now()}`,
+                name: char.name,
+                imageUrl: char.imageUrl,
+                stats: { ...char.stats },
+                baseStats: { ...char.stats },
+                owner,
+                rarity: char.rarity,
+                variant: 'base',
+                characterId: char.id,
+                ability: char.ability,
+            });
+        }
+
+        return deck;
+    }
 };

@@ -23,7 +23,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'rat',
         name: 'Giant Rat',
-        stats: { top: 1, right: 4, bottom: 1, left: 4 },
+        stats: { top: 1, right: 3, bottom: 1, left: 4 },
         imageUrl: '/assets/rat.png',
         description: 'A nuisance in the sewers.',
         rarity: 'common',
@@ -31,7 +31,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'slime',
         name: 'Green Slime',
-        stats: { top: 3, right: 3, bottom: 3, left: 3 },
+        stats: { top: 3, right: 1, bottom: 3, left: 3 },
         imageUrl: '/assets/slime.png',
         description: 'Sticky and gross.',
         rarity: 'common',
@@ -39,36 +39,69 @@ export const CHARACTERS: Character[] = [
     {
         id: 'goblin',
         name: 'Goblin Scavenger',
-        stats: { top: 2, right: 5, bottom: 2, left: 1 },
+        stats: { top: 2, right: 4, bottom: 2, left: 1 },
         imageUrl: '/assets/goblin.png', // Will generate
         description: 'Weak alone, but dangerous in numbers.',
         rarity: 'common',
     },
     {
+        id: 'shield-bearer',
+        name: 'Shield Bearer',
+        stats: { top: 1, right: 3, bottom: 4, left: 3 },
+        imageUrl: '/assets/shield-bearer.png',
+        description: 'A simple frontliner with a sturdy guard.',
+        rarity: 'common',
+    },
+    {
+        id: 'sky-scout',
+        name: 'Sky Scout',
+        stats: { top: 3, right: 3, bottom: 2, left: 3 },
+        imageUrl: '/assets/sky-scout.png',
+        description: 'Keeps an eye on every corner of the board.',
+        rarity: 'common',
+    },
+    {
+        id: 'river-wisp',
+        name: 'River Wisp',
+        stats: { top: 2, right: 4, bottom: 3, left: 2 },
+        imageUrl: '/assets/river-wisp.png',
+        description: 'A slippery spirit that flows around stronger foes.',
+        rarity: 'common',
+    },
+    {
         id: 'knight',
         name: 'Royal Knight',
-        stats: { top: 6, right: 4, bottom: 6, left: 4 }, // Sum 20? Too strong for common. Nerfing.
-        // New Stats: 4/3/4/3 = 14. Still strong. Let's do 4/2/4/2 = 12.
-        // Wait, original was 6/4/6/4. That's 20. That should be Rare/Epic.
-        // Let's rebalance existing ones.
+        stats: { top: 3, right: 2, bottom: 6, left: 4 },
         imageUrl: '/assets/knight.png',
-        description: 'A balanced warrior loyal to the crown.',
-        rarity: 'rare', // Bumped to Rare
+        description: 'A stalwart defender who bolsters the defense of allies.',
+        rarity: 'rare',
+        ability: {
+            id: 'knight-rally',
+            name: 'Defensive Formation',
+            trigger: 'ongoing',
+            text: 'Ongoing: All allied cards gain +1 bottom.'
+        }
     },
 
     // RARE (Sum ~14-16)
     {
         id: 'ranger',
         name: 'Elven Ranger',
-        stats: { top: 7, right: 2, bottom: 3, left: 6 }, // Sum 18. Strong.
+        stats: { top: 4, right: 2, bottom: 3, left: 6 },
         imageUrl: '/assets/ranger.png',
         description: 'Strikes from the shadows with deadly precision.',
         rarity: 'rare',
+        ability: {
+            id: 'ranger-snipe',
+            name: 'Long Shot',
+            trigger: 'onReveal',
+            text: 'On Reveal: Attacks cards that are 2 slots away in all directions.'
+        }
     },
     {
         id: 'wolf',
         name: 'Dire Wolf',
-        stats: { top: 5, right: 5, bottom: 2, left: 2 }, // Sum 14
+        stats: { top: 3, right: 5, bottom: 2, left: 2 }, // Sum 14
         imageUrl: '/assets/wolf.png',
         description: 'Hunts in packs.',
         rarity: 'rare',
@@ -76,8 +109,8 @@ export const CHARACTERS: Character[] = [
     {
         id: 'cleric',
         name: 'Holy Cleric',
-        stats: { top: 2, right: 6, bottom: 6, left: 2 }, // Sum 16
-        imageUrl: '/assets/cleric.png', // Will generate
+        stats: { top: 2, right: 3, bottom: 4, left: 2 },
+        imageUrl: '/assets/cleric.png',
         description: 'Protects allies with divine magic.',
         rarity: 'rare',
     },
@@ -98,7 +131,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'guardian',
         name: 'Spectral Guardian',
-        stats: { top: 3, right: 6, bottom: 3, left: 6 },
+        stats: { top: 3, right: 5, bottom: 3, left: 5 },
         imageUrl: '/assets/cyan_knight.png',
         description: 'A ghostly protector of the realm.',
         rarity: 'rare',
@@ -106,13 +139,13 @@ export const CHARACTERS: Character[] = [
             id: 'guardian-aura',
             name: 'Guardian Aura',
             trigger: 'ongoing',
-            text: 'Ongoing: Allied cards gain +1 top and +1 right.'
+            text: 'Ongoing: Allied cards gain +1 left.'
         }
     },
     {
         id: 'silencer',
         name: 'Silencer',
-        stats: { top: 4, right: 5, bottom: 4, left: 5 },
+        stats: { top: 4, right: 3, bottom: 4, left: 4 },
         imageUrl: '/assets/silencer.png',
         description: 'Nullifies magic in the vicinity.',
         rarity: 'rare',
@@ -137,6 +170,48 @@ export const CHARACTERS: Character[] = [
             text: 'On Reveal: Swap positions with an adjacent enemy card.'
         }
     },
+    {
+        id: 'battle-priest',
+        name: 'Battle Priest',
+        stats: { top: 3, right: 3, bottom: 4, left: 4 },
+        imageUrl: '/assets/battle-priest.png',
+        description: 'Bolsters nearby allies before the clash.',
+        rarity: 'rare',
+        ability: {
+            id: 'rally',
+            name: 'Rally',
+            trigger: 'onReveal',
+            text: 'On Reveal: +1 to all sides of adjacent allied cards.'
+        }
+    },
+    {
+        id: 'mirror-thief',
+        name: 'Mirror Thief',
+        stats: { top: 3, right: 3, bottom: 3, left: 4 },
+        imageUrl: '/assets/mirror-thief.png',
+        description: 'Steals the strength of nearby foes.',
+        rarity: 'rare',
+        ability: {
+            id: 'borrow',
+            name: 'Stolen Shape',
+            trigger: 'onReveal',
+            text: 'On Reveal: Copies the stats of the strongest adjacent card.'
+        }
+    },
+    {
+        id: 'boom-bomber',
+        name: 'Booming Bomber',
+        stats: { top: 4, right: 2, bottom: 4, left: 3 },
+        imageUrl: '/assets/booming-bomber.png',
+        description: 'Sometimes the best defense is a big explosion.',
+        rarity: 'rare',
+        ability: {
+            id: 'volatile',
+            name: 'Volatile',
+            trigger: 'onReveal',
+            text: 'On Reveal: Explodes, destroying itself and all adjacent cards.'
+        }
+    },
 
     // EPIC (Sum ~18-20)
     {
@@ -150,7 +225,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'golem',
         name: 'Iron Golem',
-        stats: { top: 8, right: 1, bottom: 8, left: 1 }, // Sum 18
+        stats: { top: 6, right: 2, bottom: 6, left: 2 }, // Sum 18
         imageUrl: '/assets/golem.png',
         description: 'An unstoppable construct.',
         rarity: 'epic',
@@ -158,7 +233,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'assassin',
         name: 'Shadow Assassin',
-        stats: { top: 9, right: 1, bottom: 1, left: 8 }, // Sum 19
+        stats: { top: 7, right: 2, bottom: 2, left: 4 },
         imageUrl: '/assets/assassin.png',
         description: 'Strikes first, asks questions later.',
         rarity: 'epic',
@@ -166,7 +241,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'rogue',
         name: 'Crimson Rogue',
-        stats: { top: 8, right: 2, bottom: 2, left: 8 },
+        stats: { top: 5, right: 2, bottom: 2, left: 5 },
         imageUrl: '/assets/red_rogue.png',
         description: 'Deadly and elusive.',
         rarity: 'epic',
@@ -191,23 +266,77 @@ export const CHARACTERS: Character[] = [
             text: 'On Reveal: 50% chance to gain +1 to all stats, 50% chance to lose -1 to all stats.'
         }
     },
+    {
+        id: 'echo-mage',
+        name: 'Echo Mage',
+        stats: { top: 3, right: 6, bottom: 3, left: 6 },
+        imageUrl: '/assets/echo-mage.png',
+        description: 'Repeats the last spell cast on the battlefield.',
+        rarity: 'epic',
+        ability: {
+            id: 'echo',
+            name: 'Echo',
+            trigger: 'onReveal',
+            text: 'On Reveal: Triggers the On Reveal ability of the last played card.'
+        }
+    },
+    {
+        id: 'phantom-general',
+        name: 'Phantom General',
+        stats: { top: 5, right: 4, bottom: 5, left: 4 },
+        imageUrl: '/assets/phantom-general.png',
+        description: 'Leads an army of afterimages.',
+        rarity: 'epic',
+        ability: {
+            id: 'phantom',
+            name: 'Phantom Legion',
+            trigger: 'onReveal',
+            text: 'On Reveal: Creates a copy of itself in an empty adjacent slot.'
+        }
+    },
+    {
+        id: 'arcane-scholar',
+        name: 'Arcane Scholar',
+        stats: { top: 1, right: 3, bottom: 1, left: 3 },
+        imageUrl: '/assets/arcane-scholar.png',
+        description: 'Grows stronger the more options you keep in hand.',
+        rarity: 'epic',
+        ability: {
+            id: 'study',
+            name: 'Study',
+            trigger: 'onReveal',
+            text: 'On Reveal: Gains +1 to all stats for each card in your hand.'
+        }
+    },
 
     // LEGENDARY (Sum ~22+ or Unique Spikes)
     {
         id: 'dragon',
         name: 'Red Dragon',
-        stats: { top: 9, right: 4, bottom: 9, left: 2 },
+        stats: { top: 8, right: 4, bottom: 5, left: 2 },
         imageUrl: '/assets/dragon.png',
         description: 'A legendary beast of immense power.',
         rarity: 'legendary',
+        ability: {
+            id: 'dragon-fire',
+            name: 'Dragon Fire',
+            trigger: 'ongoing',
+            text: 'Ongoing: Adjacent allied cards gain +2 top.'
+        }
     },
     {
         id: 'lich',
         name: 'Lich King',
-        stats: { top: 8, right: 9, bottom: 4, left: 4 },
+        stats: { top: 4, right: 3, bottom: 8, left: 7 },
         imageUrl: '/assets/lich.png',
         description: 'The master of the undead.',
         rarity: 'legendary',
+        ability: {
+            id: 'lich-debuff',
+            name: 'Death Aura',
+            trigger: 'ongoing',
+            text: 'Ongoing: Adjacent enemy cards lose -2 to all stats.'
+        }
     },
     {
         id: 'chronomancer',
@@ -226,7 +355,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'bull',
         name: 'Bull Boss',
-        stats: { top: 9, right: 6, bottom: 3, left: 3 },
+        stats: { top: 7, right: 5, bottom: 3, left: 3 },
         imageUrl: '/assets/bull-boss.png',
         description: 'Charges forward, crushing everything in its path.',
         rarity: 'legendary',
@@ -235,6 +364,20 @@ export const CHARACTERS: Character[] = [
             name: 'Bull Charge',
             trigger: 'onReveal',
             text: 'On Reveal: Charges straight up, battling through up to two enemy cards in this column using its top vs their bottom.'
+        }
+    },
+    {
+        id: 'void-tyrant',
+        name: 'Void Tyrant',
+        stats: { top: 3, right: 4, bottom: 3, left: 4 },
+        imageUrl: '/assets/void-tyrant.png',
+        description: 'Saps the strength of all who stand against it.',
+        rarity: 'legendary',
+        ability: {
+            id: 'void-drain',
+            name: 'Void Drain',
+            trigger: 'onReveal',
+            text: 'On Reveal: Steals +1 from all stats of all enemy cards on the board.'
         }
     },
 ];

@@ -4,18 +4,45 @@ import React, { useState } from 'react';
 import { useGameLogic } from '../../hooks/useGameLogic';
 import { Board } from './Board';
 import { Card } from './Card';
-import { Card as CardType } from '../../lib/types';
+import { Card as CardType, Player, Board as BoardState, AIDifficulty } from '../../lib/types';
 import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
+import { HowToPlay } from './HowToPlay';
+import CoinFlip from './CoinFlip';
 
+const computeFinalScores = (board: BoardState, startingPlayer: Player) => {
+    let playerCount = 0;
+    let opponentCount = 0;
 
-type ViewState = 'menu' | 'game' | 'inventory';
+    board.forEach((slot) => {
+        if (!slot) return;
+        if (slot.owner === 'player') playerCount++;
+        if (slot.owner === 'opponent') opponentCount++;
+    });
+
+    const secondPlayer: Player = startingPlayer === 'player' ? 'opponent' : 'player';
+    const playerBonus = secondPlayer === 'player' ? 1 : 0;
+    const opponentBonus = secondPlayer === 'opponent' ? 1 : 0;
+
+    return {
+        playerBoard: playerCount,
+        opponentBoard: opponentCount,
+        playerScore: playerCount + playerBonus,
+        opponentScore: opponentCount + opponentBonus,
+        secondPlayer,
+    };
+};
+type ViewState = 'menu' | 'game' | 'inventory' | 'howToPlay';
 
 export const Game: React.FC = () => {
-    const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame } = useGameLogic();
+    const [difficulty, setDifficulty] = useState<AIDifficulty>('normal');
+    const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame, setStartingPlayer } = useGameLogic(difficulty);
     const [draggedCard, setDraggedCard] = useState<CardType | null>(null);
     const [view, setView] = useState<ViewState>('menu');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
+    const [showStarterPicker, setShowStarterPicker] = useState(false);
+
+    const liveScores = computeFinalScores(gameState.board, gameState.startingPlayer);
 
     const onDragStart = (e: React.DragEvent, card: CardType) => {
         setDraggedCard(card);
@@ -35,6 +62,12 @@ export const Game: React.FC = () => {
     const handleStartGame = () => {
         resetGame();
         setView('game');
+        setShowStarterPicker(true);
+    };
+
+    const handleStartingPlayerChosen = (startingPlayer: Player) => {
+        setStartingPlayer(startingPlayer);
+        setShowStarterPicker(false);
     };
 
     if (view === 'menu') {
@@ -42,11 +75,16 @@ export const Game: React.FC = () => {
             <MainMenu
                 onStartGame={handleStartGame}
                 onOpenInventory={() => setView('inventory')}
+                onOpenHowToPlay={() => setView('howToPlay')}
+                difficulty={difficulty}
+                onSelectDifficulty={setDifficulty}
             />
         );
     }
 
-
+    if (view === 'howToPlay') {
+        return <HowToPlay onBack={() => setView('menu')} />;
+    }
 
     if (view === 'inventory') {
         return <Inventory onBack={() => setView('menu')} onSaveDeck={(deck) => {
@@ -75,62 +113,7 @@ export const Game: React.FC = () => {
             </h1>
 
             <div className="flex flex-col md:flex-row gap-12 items-center">
-                {/* Opponent Hand */}
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-red-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Opponent</h2>
-                    <div className="flex flex-col gap-3">
-                        {gameState.opponentHand.map((card) => (
-                            <Card
-                                key={card.id}
-                                card={card}
-                                onClick={(c) => setPreviewCard(c)}
-                            />
-                        ))}
-                    </div>
-                    {/* Opponent Deck Count */}
-                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
-                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
-                            <span className="text-slate-400 font-bold text-xs">{gameState.opponentDeck.length}</span>
-                        </div>
-                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
-                    </div>
-                </div>
-
-                {/* Board Area */}
-                <div className="flex flex-col items-center gap-4">
-                    <div className="relative p-4 bg-slate-900/50 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm">
-                        <Board
-                            board={gameState.board}
-                            onDropCard={onDropCard}
-                            onHoverSlot={onHoverSlot}
-                            previewCaptures={previewCaptures}
-                            onCardClick={(card) => setPreviewCard(card)}
-                        />
-
-                        {/* Winner Overlay */}
-                        {gameState.winner && (
-                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 rounded-xl">
-                                <h2 className="text-5xl font-black text-amber-100 mb-4 animate-bounce drop-shadow-lg">
-                                    {gameState.winner === 'player' ? 'VICTORY' : gameState.winner === 'opponent' ? 'DEFEAT' : 'DRAW'}
-                                </h2>
-                                <button
-                                    onClick={resetGame}
-                                    className="px-8 py-3 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 font-bold rounded-sm border-2 border-emerald-600 shadow-lg transition-all"
-                                >
-                                    PLAY AGAIN
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="text-slate-400 text-sm font-sans font-bold tracking-wider">
-                        TURN: <span className={gameState.currentPlayer === 'player' ? 'text-amber-400' : 'text-red-400'}>
-                            {gameState.currentPlayer === 'player' ? 'YOUR TURN' : 'OPPONENT TURN'}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Player Hand */}
+                {/* Player Hand (left side) */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-amber-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Player</h2>
                     <div className="flex flex-col gap-3">
@@ -152,6 +135,94 @@ export const Game: React.FC = () => {
                         <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
                     </div>
                 </div>
+
+                {/* Board Area */}
+                <div className="flex flex-col items-center gap-4">
+                    {/* Live score (includes second-player bonus) */}
+                    <div className="text-lg md:text-xl text-slate-100 font-sans font-bold mb-2 tracking-wide">
+                        Score:{' '}
+                        <span className="text-amber-300 font-extrabold">You {liveScores.playerScore}</span>
+                        <span className="mx-2 text-slate-500">vs</span>
+                        <span className="text-red-300 font-extrabold">{liveScores.opponentScore} Opponent</span>
+                    </div>
+
+                    <div className="relative p-4 bg-slate-900/50 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm">
+                        <Board
+                            board={gameState.board}
+                            onDropCard={onDropCard}
+                            onHoverSlot={onHoverSlot}
+                            previewCaptures={previewCaptures}
+                            onCardClick={(card) => setPreviewCard(card)}
+                        />
+
+                        {/* Winner Overlay */}
+                        {gameState.winner && (
+                            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 rounded-xl">
+                                <h2 className="text-5xl font-black text-amber-100 mb-2 animate-bounce drop-shadow-lg">
+                                    {gameState.winner === 'player' ? 'VICTORY' : gameState.winner === 'opponent' ? 'DEFEAT' : 'DRAW'}
+                                </h2>
+                                {(() => {
+                                    const { playerScore, opponentScore, playerBoard, opponentBoard, secondPlayer } = computeFinalScores(
+                                        gameState.board,
+                                        gameState.startingPlayer,
+                                    );
+                                    return (
+                                        <div className="mb-4 text-sm text-slate-200 font-sans text-center">
+                                            <div className="mb-1">
+                                                Final score: <span className="text-amber-300 font-semibold">You {playerScore}</span>{' '}
+                                                <span className="text-slate-400">vs</span>{' '}
+                                                <span className="text-red-300 font-semibold">{opponentScore} Opponent</span>
+                                            </div>
+                                            <div className="text-xs text-slate-400">
+                                                (Board: You {playerBoard} – {opponentBoard} Opponent
+                                                {secondPlayer === 'player'
+                                                    ? ', +1 second-player bonus to you'
+                                                    : ', +1 second-player bonus to opponent'}
+                                                )
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                                <button
+                                    onClick={() => {
+                                        resetGame();
+                                        setShowStarterPicker(true);
+                                    }}
+                                    className="px-8 py-3 bg-emerald-800 hover:bg-emerald-700 text-emerald-100 font-bold rounded-sm border-2 border-emerald-600 shadow-lg transition-all"
+                                >
+                                    PLAY AGAIN
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="text-slate-400 text-sm font-sans font-bold tracking-wider">
+                        TURN: <span className={gameState.currentPlayer === 'player' ? 'text-amber-400' : 'text-red-400'}>
+                            {gameState.currentPlayer === 'player' ? 'YOUR TURN' : 'OPPONENT TURN'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Opponent Hand (right side) */}
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-red-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Opponent</h2>
+                    <div className="flex flex-col gap-3">
+                        {gameState.opponentHand.map((card) => (
+                            <Card
+                                key={card.id}
+                                card={card}
+                                onClick={(c) => setPreviewCard(c)}
+                            />
+                        ))}
+                    </div>
+                    {/* Opponent Deck Count */}
+                    <div className="mt-4 flex items-center justify-center gap-2 opacity-70">
+                        <div className="w-8 h-10 bg-slate-800 border border-slate-600 rounded-sm flex items-center justify-center shadow-inner">
+                            <span className="text-slate-400 font-bold text-xs">{gameState.opponentDeck.length}</span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-sans uppercase tracking-wider">Deck</span>
+                    </div>
+                </div>
             </div>
 
             {previewCard && (
@@ -159,9 +230,11 @@ export const Game: React.FC = () => {
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
                     onClick={() => setPreviewCard(null)}
                 >
-                    <Card card={previewCard} className="scale-[2.5] shadow-2xl" />
+                    <Card card={previewCard} className="scale-[3.5] shadow-2xl" />
                 </div>
             )}
+
+            <CoinFlip onResult={handleStartingPlayerChosen} show={showStarterPicker} />
         </div>
     );
 };
