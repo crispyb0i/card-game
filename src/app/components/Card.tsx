@@ -101,14 +101,13 @@ export const Card: React.FC<CardProps> = ({
     const getRarityGlow = (rarity: string) => {
         switch (rarity) {
             case 'legendary':
-                return 'legendary-card ring-4 ring-yellow-400';
+                return 'legendary-card';
             case 'epic':
-                return 'epic-card ring-4 ring-purple-400';
+                return 'epic-card';
             case 'rare':
-                return 'ring-4 ring-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.6),0_0_24px_rgba(34,211,238,0.3)]';
+                return 'rare-card';
             case 'common':
-                // Soft gray border for common cards (same thickness as others)
-                return 'ring-4 ring-slate-300/80 shadow-[0_0_8px_rgba(148,163,184,0.4)]';
+                return 'common-card';
             default:
                 return 'border border-slate-900';
         }
@@ -128,7 +127,7 @@ export const Card: React.FC<CardProps> = ({
         : '';
 
     const baseStats = card.baseStats ?? card.stats;
-    
+
     // Apply preview modifiers if provided (when dragging over a slot)
     // When showing preview, we show resolved stats relative to base stats
     const displayStats = previewModifiers ? {
@@ -137,7 +136,7 @@ export const Card: React.FC<CardProps> = ({
         bottom: baseStats.bottom + (previewModifiers.bottom || 0),
         left: baseStats.left + (previewModifiers.left || 0),
     } : card.stats;
-    
+
     const statTrendClass = (value: number, base: number) => {
         if (value > base) return 'text-emerald-300';
         if (value < base) return 'text-rose-300';
@@ -154,7 +153,7 @@ export const Card: React.FC<CardProps> = ({
         if ((showAbilityTooltip || showStatsTooltip || showEnvTooltip) && cardRef.current) {
             const rect = cardRef.current.getBoundingClientRect();
             // For environment tooltip, center horizontally; for others, position to the right
-            const left = showEnvTooltip 
+            const left = showEnvTooltip
                 ? rect.left + rect.width / 2 + window.scrollX
                 : rect.right + window.scrollX + 8; // 8px margin (ml-2)
             setTooltipPosition({
@@ -168,7 +167,7 @@ export const Card: React.FC<CardProps> = ({
 
     const renderTooltip = (content: React.ReactNode, isBottom = false, centerHorizontal = false) => {
         if (!tooltipPosition || typeof window === 'undefined') return null;
-        
+
         const style: React.CSSProperties = {
             position: 'fixed',
             top: isBottom ? 'auto' : `${tooltipPosition.top}px`,
@@ -180,7 +179,7 @@ export const Card: React.FC<CardProps> = ({
         };
 
         return createPortal(
-            <div 
+            <div
                 className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur pointer-events-none"
                 style={style}
             >
@@ -193,9 +192,8 @@ export const Card: React.FC<CardProps> = ({
     return (
         <div
             ref={cardRef}
-            className={`relative inline-block transition-transform ${
-                showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[99999]' : ''
-            } ${isDragOverlay ? 'z-[100000]' : ''} ${isDimmed ? 'opacity-30' : ''}`}
+            className={`relative inline-block transition-transform ${showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[99999]' : ''
+                } ${isDragOverlay ? 'z-[100000]' : ''} ${isDimmed ? 'opacity-30' : ''}`}
         >
             <div
                 draggable={isDraggable}
@@ -203,7 +201,7 @@ export const Card: React.FC<CardProps> = ({
                 onDragEnd={handleDragEnd}
                 onClick={onClick ? () => onClick(card) : undefined}
                 className={`
-        relative w-28 h-36 rounded-lg flex flex-col items-center p-1 select-none
+        relative w-24 h-32 rounded-lg flex flex-col items-center p-1 select-none
         transition-all duration-500 transform-style-3d
         ${bgColor} ${className} ${rarityStyle} ${abilityGlow}
         ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:scale-110 hover:z-20' : 'cursor-pointer'}

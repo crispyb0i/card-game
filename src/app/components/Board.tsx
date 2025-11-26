@@ -38,7 +38,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
     const modifierMap = collectAllModifiers(board, mapId);
 
     return (
-        <div className="grid grid-cols-3 gap-3 p-4 bg-slate-800 rounded-xl border-[6px] border-slate-700 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
+        <div className="grid grid-cols-3 gap-2 p-3 bg-slate-800 rounded-xl border-[6px] border-slate-700 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
             {board.map((card, index) => {
                 const isCapturedPreview = previewCaptures.includes(index);
                 const isHovered = hoveredSlot === index && !card;
@@ -65,7 +65,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
                     <div
                         key={index}
                         className={`
-              relative w-32 h-40 rounded-sm border-2 flex items-center justify-center
+              relative w-28 h-36 rounded-sm border-2 flex items-center justify-center
               transition-all duration-200
               ${card ? 'border-transparent' : 'border-slate-600 bg-slate-700/30'}
               ${!card && 'hover:bg-slate-600/50'}
@@ -96,9 +96,8 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
                                 {/* Small corner icon for quick readability */}
                                 <div className="absolute inset-1 rounded-sm pointer-events-none flex items-start justify-end p-1 z-10">
                                     <span
-                                        className={`text-xs opacity-80 ${
-                                            tileConfig.type === 'relic' ? 'text-amber-200' : 'text-red-300'
-                                        }`}
+                                        className={`text-xs opacity-80 ${tileConfig.type === 'relic' ? 'text-amber-200' : 'text-red-300'
+                                            }`}
                                     >
                                         {tileConfig.type === 'relic' ? '✧' : '⚠'}
                                     </span>

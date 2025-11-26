@@ -8,9 +8,12 @@ import { Card as CardType, Player, Board as BoardState, AIDifficulty, CardStats 
 import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
 import { HowToPlay } from './HowToPlay';
+import { Shop } from './Shop';
 import CoinFlip from './CoinFlip';
 import { CHARACTERS } from '../../lib/cards';
 import { calculateResolvedStats } from '../../lib/abilities';
+import { VolumeControl } from './VolumeControl';
+import { useStore } from '../../store/useStore';
 
 const computeFinalScores = (board: BoardState, startingPlayer: Player) => {
     let playerCount = 0;
@@ -34,11 +37,16 @@ const computeFinalScores = (board: BoardState, startingPlayer: Player) => {
         secondPlayer,
     };
 };
-type ViewState = 'menu' | 'game' | 'inventory' | 'howToPlay';
+type ViewState = 'menu' | 'game' | 'inventory' | 'shop' | 'howToPlay';
 
 export const Game: React.FC = () => {
-    const [difficulty, setDifficulty] = useState<AIDifficulty>('normal');
-    const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame, setStartingPlayer } = useGameLogic(difficulty);
+    // Use Store for settings
+    const difficulty = useStore((state) => state.difficulty);
+    const setDifficulty = useStore((state) => state.setDifficulty);
+
+    // Game Logic Hook (now uses store internally)
+    const { gameState, previewCaptures, handleCardDrop, handleHover, resetGame, setStartingPlayer } = useGameLogic();
+
     const [draggedCard, setDraggedCard] = useState<CardType | null>(null);
     const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
     const [view, setView] = useState<ViewState>('menu');
@@ -88,6 +96,7 @@ export const Game: React.FC = () => {
             <MainMenu
                 onStartGame={handleStartGame}
                 onOpenInventory={() => setView('inventory')}
+                onOpenShop={() => setView('shop')}
                 onOpenHowToPlay={() => setView('howToPlay')}
                 difficulty={difficulty}
                 onSelectDifficulty={setDifficulty}
@@ -101,13 +110,12 @@ export const Game: React.FC = () => {
 
     if (view === 'inventory') {
         return <Inventory onBack={() => setView('menu')} onSaveDeck={() => {
-            // Update game logic with new deck (need to expose a setPlayerDeck method in useGameLogic or just reload)
-            // For now, we rely on localStorage and next game start will pick it up, 
-            // OR we can pass it to useGameLogic if we refactor it.
-            // Let's just save to local storage (handled in Inventory) and maybe force a reset?
-            // Actually, useGameLogic initializes from createDeck.
-            // We should update useGameLogic to accept an initial deck.
+            // Deck is saved to store in Inventory component
         }} />;
+    }
+
+    if (view === 'shop') {
+        return <Shop onBack={() => setView('menu')} />;
     }
 
     return (
@@ -120,6 +128,11 @@ export const Game: React.FC = () => {
                 ← MENU
             </button>
 
+            {/* Volume Control */}
+            <div className="absolute top-4 right-4">
+                <VolumeControl />
+            </div>
+
             <h1 className="text-4xl font-bold mb-8 tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 drop-shadow-md">
                 MYTHIC TRIAD
             </h1>
@@ -128,12 +141,12 @@ export const Game: React.FC = () => {
                 {/* Player Hand (left side) */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-amber-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Player</h2>
-                    <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-6 max-w-[220px]">
                         {gameState.playerHand.map((card) => {
                             // Calculate resolved stats if this card is being dragged and hovering over a slot
                             // This includes On Reveal ability resolution + ongoing modifiers
                             let previewModifiers: Partial<CardStats> | undefined = undefined;
-                            
+
                             if (draggedCard?.id === card.id && hoveredSlot !== null) {
                                 const resolvedStats = calculateResolvedStats(
                                     gameState.board,
@@ -142,7 +155,7 @@ export const Game: React.FC = () => {
                                     gameState.currentMapId,
                                     gameState
                                 );
-                                
+
                                 // Calculate the difference from current stats to show as modifiers
                                 // This will show the total change including On Reveal + ongoing modifiers
                                 const baseStats = card.baseStats ?? card.stats;
@@ -153,7 +166,7 @@ export const Game: React.FC = () => {
                                     left: resolvedStats.left - baseStats.left,
                                 };
                             }
-                            
+
                             return (
                                 <Card
                                     key={card.id}
@@ -252,7 +265,7 @@ export const Game: React.FC = () => {
                 {/* Opponent Hand (right side) */}
                 <div className="flex flex-col gap-2">
                     <h2 className="text-red-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Opponent</h2>
-                    <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-6 max-w-[220px]">
                         {gameState.opponentHand.map((card) => (
                             <Card
                                 key={card.id}
@@ -276,7 +289,7 @@ export const Game: React.FC = () => {
                         <div className="mb-24">
                             <Card card={previewCard} className="scale-[2] shadow-2xl" />
                         </div>
-                        
+
                         {/* Description */}
                         {previewCard.characterId && (() => {
                             const character = CHARACTERS.find(c => c.id === previewCard.characterId);
@@ -286,7 +299,7 @@ export const Game: React.FC = () => {
                                 </div>
                             ) : null;
                         })()}
-                        
+
                         {/* Ability Info below card */}
                         {previewCard.ability && (
                             <div className="w-80 bg-slate-900/90 border border-slate-600 p-4 rounded-xl text-center">
@@ -299,7 +312,7 @@ export const Game: React.FC = () => {
             )}
 
             <CoinFlip onResult={handleStartingPlayerChosen} show={showStarterPicker} />
-            
+
         </div>
     );
 };

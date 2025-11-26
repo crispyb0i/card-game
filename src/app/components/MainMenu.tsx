@@ -6,6 +6,7 @@ import { MapId, MapDefinition, AIDifficulty } from '../../lib/types';
 interface MainMenuProps {
     onStartGame: () => void;
     onOpenInventory: () => void;
+    onOpenShop: () => void;
     onOpenHowToPlay: () => void;
     maps?: MapDefinition[];
     selectedMapId?: MapId;
@@ -14,7 +15,7 @@ interface MainMenuProps {
     onSelectDifficulty?: (difficulty: AIDifficulty) => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenInventory, onOpenHowToPlay, maps, selectedMapId, onSelectMap, difficulty = 'normal', onSelectDifficulty }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenInventory, onOpenShop, onOpenHowToPlay, maps, selectedMapId, onSelectMap, difficulty = 'normal', onSelectDifficulty }) => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-amber-100 font-serif">
             <h1 className="text-6xl font-black mb-12 tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-amber-300 to-amber-600 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)]">
@@ -92,6 +93,12 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartGame, onOpenInventory
                     className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-sm border border-slate-600 hover:border-slate-400"
                 >
                     INVENTORY
+                </button>
+                <button
+                    onClick={onOpenShop}
+                    className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-sm border border-slate-600 hover:border-slate-400"
+                >
+                    SHOP
                 </button>
                 <button
                     onClick={onOpenHowToPlay}

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card as CardType, Rarity } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
 import { Toast } from './Toast';
+import { useStore } from '../../store/useStore';
 
 const DECK_SIZE = 10;
 
@@ -35,51 +36,67 @@ const RARITY_LIMITS: Partial<Record<Rarity, number>> = {
     rare: 3,
 };
 
-// Default deck for first-time players
-const DEFAULT_DECK_CHARACTER_IDS: string[] = [
-    'dragon',        // Legendary
-    'wizard',        // Epic
-    'golem',         // Epic
-    'knight',        // Rare
-    'ranger',        // Rare
-    'battle-priest', // Rare
-    'squire',        // Common
-    'shield-bearer', // Common
-    'sky-scout',     // Common
-    'river-wisp',    // Common
-];
-
 interface InventoryProps {
     onBack: () => void;
     onSaveDeck: (deck: CardType[]) => void;
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
-    // Create inventory cards with unique IDs (as constant for use in initializer)
-    const ownedCards = CHARACTERS.map((char, i) => ({
-        id: `inv-${char.id}-${i}`,
-        name: char.name,
-        imageUrl: char.imageUrl,
-        stats: { ...char.stats },
-        baseStats: { ...char.stats },
-        owner: 'player' as const,
-        rarity: char.rarity,
-        variant: 'base' as const,
-        characterId: char.id,
-        ability: char.ability,
-    }));
+    // Access Store
+    const ownedCardIds = useStore((state) => state.ownedCards);
+    const selectedDeckIds = useStore((state) => state.selectedDeck);
+    const setDeck = useStore((state) => state.setDeck);
+
+    // Local state for UI
+    const [filter, setFilter] = useState<Rarity | 'all'>('all');
+    const [previewCard, setPreviewCard] = useState<CardType | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+    // Hydrate full card objects from IDs
+    const ownedCards = ownedCardIds.map((id, i) => {
+        // Handle both "inv-charId-index" and "charId" formats
+        // The store might just store "charId" for simplicity, but let's support unique IDs if we want duplicates later
+        // For now, let's assume the store holds CHARACTER IDs (e.g., 'squire', 'dragon')
+        // But to make them unique Card objects, we need to generate unique IDs
+        const charId = id.includes('inv-') ? id.split('-')[1] : id;
+        const char = CHARACTERS.find(c => c.id === charId);
+
+        if (!char) return null;
+
+        return {
+            id: `inv-${char.id}-${i}`, // Generate a unique ID for the UI instance
+            name: char.name,
+            imageUrl: char.imageUrl,
+            stats: { ...char.stats },
+            baseStats: { ...char.stats },
+            owner: 'player' as const,
+            rarity: char.rarity,
+            variant: 'base' as const,
+            characterId: char.id,
+            ability: char.ability,
+        };
+    }).filter((c): c is CardType => c !== null);
 
     // Helper function to map character IDs to deck slots
     const mapCharacterIdsToDeck = (characterIds: string[], cards: CardType[]): (string | null)[] => {
         const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
 
+        // We need to match the character IDs in the deck to the specific Card instances we created above
+        // This is a bit tricky because we might have multiple of the same character
+        // For now, we'll just take the first available one of that type
+
+        const usedCardIds = new Set<string>();
+
         characterIds.forEach(charId => {
-            const foundCard = cards.find(c => c.characterId === charId);
+            // Find a card instance of this character that hasn't been used yet
+            const foundCard = cards.find(c => c.characterId === charId && !usedCardIds.has(c.id));
+
             if (foundCard) {
                 // Find first available slot for this rarity
                 for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
                     if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
                         newDeck[i] = foundCard.id;
+                        usedCardIds.add(foundCard.id);
                         break;
                     }
                 }
@@ -89,27 +106,15 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
         return newDeck;
     };
 
-    // Initialize deck from saved or default using useState initializer
-    const [selectedDeck, setSelectedDeck] = useState<(string | null)[]>(() => {
-        const savedDeck = typeof window !== 'undefined' ? localStorage.getItem('playerDeck') : null;
-        if (savedDeck) {
-            try {
-                const savedCharacterIds: string[] = JSON.parse(savedDeck);
-                const mappedDeck = mapCharacterIdsToDeck(savedCharacterIds, ownedCards);
-                return mappedDeck;
-            } catch (e) {
-                console.error("Failed to load deck", e);
-                // Fall through to default deck
-                return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
-            }
-        } else {
-            // No saved deck - use default deck
-            return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
-        }
+    // Initialize local deck state from store
+    const [localDeck, setLocalDeck] = useState<(string | null)[]>(() => {
+        return mapCharacterIdsToDeck(selectedDeckIds, ownedCards);
     });
-    const [filter, setFilter] = useState<Rarity | 'all'>('all');
-    const [previewCard, setPreviewCard] = useState<CardType | null>(null);
-    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
+
+    // Update local deck when store changes (e.g. initial load)
+    useEffect(() => {
+        setLocalDeck(mapCharacterIdsToDeck(selectedDeckIds, ownedCards));
+    }, [selectedDeckIds]); // Only re-run if selectedDeckIds changes deeply (which it shouldn't often)
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
         setToast({ message, type });
@@ -121,11 +126,11 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
         if (!card) return;
 
         // Check if card is already in deck
-        const existingSlotIndex = selectedDeck.indexOf(cardId);
+        const existingSlotIndex = localDeck.indexOf(cardId);
 
         if (existingSlotIndex !== -1) {
             // Remove card
-            setSelectedDeck(prev => {
+            setLocalDeck(prev => {
                 const newDeck = [...prev];
                 newDeck[existingSlotIndex] = null;
                 return newDeck;
@@ -134,7 +139,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
             // Find first available slot for this rarity
             let targetSlot = -1;
             for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
-                if (SLOT_STRUCTURE[i] === card.rarity && selectedDeck[i] === null) {
+                if (SLOT_STRUCTURE[i] === card.rarity && localDeck[i] === null) {
                     targetSlot = i;
                     break;
                 }
@@ -145,7 +150,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                 return;
             }
 
-            setSelectedDeck(prev => {
+            setLocalDeck(prev => {
                 const newDeck = [...prev];
                 newDeck[targetSlot] = cardId;
                 return newDeck;
@@ -155,7 +160,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
 
     const handleSave = () => {
         // Filter out nulls to get actual selected cards
-        const currentDeckCardIds = selectedDeck.filter((id): id is string => id !== null);
+        const currentDeckCardIds = localDeck.filter((id): id is string => id !== null);
 
         if (currentDeckCardIds.length !== DECK_SIZE) {
             showToast(`You must select exactly ${DECK_SIZE} cards.`, 'warning');
@@ -184,9 +189,10 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
             }
         }
 
-        // Save character IDs instead of full card IDs
+        // Save character IDs to Store
         const characterIds = deckCards.map(c => c.characterId || c.id.replace(/^inv-/, '').replace(/-\d+$/, ''));
-        localStorage.setItem('playerDeck', JSON.stringify(characterIds));
+        setDeck(characterIds);
+
         onSaveDeck(deckCards);
         showToast('Deck saved successfully!', 'success');
         onBack();
@@ -236,7 +242,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                 {/* Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-20">
                     {filteredCards.map((card) => {
-                        const isSelected = selectedDeck.includes(card.id);
+                        const isSelected = localDeck.includes(card.id);
                         return (
                             <div
                                 key={card.id}
@@ -255,7 +261,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                             e.stopPropagation();
                                             setPreviewCard(card);
                                         }}
-                                        className="absolute top-6 -right-4 w-8 h-8 -translate-x-0.5 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-99 backdrop-blur-sm"
+                                        className="absolute top-6 -right-4 w-8 h-8 -translate-x-0.5 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-20 backdrop-blur-sm"
                                         title="Preview card"
                                     >
                                         👁
@@ -280,8 +286,8 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                     <h2 className="text-2xl font-bold text-amber-100 mb-2">Your Deck</h2>
                     <div className="text-sm text-slate-400 font-sans flex justify-between items-center">
                         <span>Selected Cards</span>
-                        <span className={selectedDeck.filter(id => id !== null).length === DECK_SIZE ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
-                            {selectedDeck.filter(id => id !== null).length}/{DECK_SIZE}
+                        <span className={localDeck.filter(id => id !== null).length === DECK_SIZE ? 'text-emerald-400 font-bold' : 'text-amber-400'}>
+                            {localDeck.filter(id => id !== null).length}/{DECK_SIZE}
                         </span>
                     </div>
                     <div className="text-[11px] text-slate-500 mt-1">
@@ -290,15 +296,15 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                     {/* Progress Bar */}
                     <div className="w-full h-2 bg-slate-800 rounded-full mt-2 overflow-hidden">
                         <div
-                            className={`h-full transition-all duration-300 ${selectedDeck.filter(id => id !== null).length === DECK_SIZE ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                            style={{ width: `${(selectedDeck.filter(id => id !== null).length / DECK_SIZE) * 100}%` }}
+                            className={`h-full transition-all duration-300 ${localDeck.filter(id => id !== null).length === DECK_SIZE ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                            style={{ width: `${(localDeck.filter(id => id !== null).length / DECK_SIZE) * 100}%` }}
                         />
                     </div>
                 </div>
 
                 {/* Selected Cards List - Grid */}
                 <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
-                    {selectedDeck.every(id => id === null) && (
+                    {localDeck.every(id => id === null) && (
                         <div className="text-slate-600 italic text-center py-10 border-2 border-dashed border-slate-800 rounded-xl">
                             Select cards from the collection to build your deck.
                         </div>
@@ -306,7 +312,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
 
                     <div className="grid grid-cols-2 gap-3 pb-4">
                         {/* Render exactly DECK_SIZE slots with rarity-based colors */}
-                        {selectedDeck.map((cardId, index) => {
+                        {localDeck.map((cardId, index) => {
                             const card = cardId ? ownedCards.find(c => c.id === cardId) : null;
                             const slotRarity = SLOT_STRUCTURE[index];
                             const borderColor = RARITY_COLORS[slotRarity];
@@ -354,7 +360,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                     <button
                         onClick={handleSave}
                         className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-md border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:border-b-0 disabled:translate-y-0 shadow-lg text-lg tracking-wide"
-                        disabled={selectedDeck.length !== 10}
+                        disabled={localDeck.filter(id => id !== null).length !== DECK_SIZE}
                     >
                         SAVE DECK
                     </button>

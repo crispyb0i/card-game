@@ -4,33 +4,32 @@ import React, { useState } from 'react';
 import { Card as CardType } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
+import { useStore } from '../../store/useStore';
 
 interface ShopProps {
     onBack: () => void;
 }
 
 export const Shop: React.FC<ShopProps> = ({ onBack }) => {
-    const [credits, setCredits] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const savedCredits = localStorage.getItem('credits');
-            return savedCredits ? parseInt(savedCredits) : 1000; // Start with 1000 credits
-        }
-        return 1000;
-    });
+    // Access Store
+    const credits = useStore((state) => state.credits);
+    const spendCredits = useStore((state) => state.spendCredits);
+    const addCard = useStore((state) => state.addCard);
+
     const [openedCards, setOpenedCards] = useState<CardType[] | null>(null);
     const [isOpening, setIsOpening] = useState(false);
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
 
     const buyPack = () => {
-        if (credits < 100) {
+        // Use store action to check and spend credits
+        const success = spendCredits(100);
+
+        if (!success) {
             alert("Not enough credits!");
             return;
         }
 
         setIsOpening(true);
-        const newCredits = credits - 100;
-        setCredits(newCredits);
-        localStorage.setItem('credits', newCredits.toString());
 
         // Generate 3 cards
         setTimeout(() => {
@@ -44,6 +43,9 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
 
                 const pool = CHARACTERS.filter(c => c.rarity === rarity);
                 const char = pool[Math.floor(Math.random() * pool.length)] || CHARACTERS[0];
+
+                // Add to Store Inventory
+                addCard(char.id);
 
                 return {
                     id: `new-${char.id}-${Date.now()}-${i}`,
@@ -61,18 +63,6 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
 
             setOpenedCards(newCards);
             setIsOpening(false);
-
-            // Add to Inventory (Mock)
-            // In real app, we'd merge with existing inventory
-            // For now, we assume Inventory component reloads from source of truth, 
-            // but we haven't implemented a persistent "Owned Cards" list in localStorage yet.
-            // Let's do that now.
-            // TODO: Implement inventory persistence
-            // const savedInv = localStorage.getItem('inventory');
-            // const currentInv = savedInv ? JSON.parse(savedInv) : [];
-            // We need to store just IDs or full objects? 
-            // Inventory.tsx currently mocks "Give user all characters".
-            // We should update Inventory to read from this storage if it exists.
         }, 1500);
     };
 
