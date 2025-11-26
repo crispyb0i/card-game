@@ -249,25 +249,25 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                 key={card.id}
                                 className="relative cursor-pointer transition-transform duration-200"
                             >
-                                <div onClick={() => toggleCard(card.id)}>
+                                <div onClick={() => toggleCard(card.id)} className="relative inline-block">
                                     <Card
                                         card={card}
                                         className={isSelected
                                             ? 'ring-2 ring-emerald-500/50 opacity-50 grayscale hover:opacity-60'
                                             : 'opacity-90 hover:opacity-100 hover:scale-105'}
                                     />
+                                    {/* Preview button - positioned on top-left, below stats */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPreviewCard(card);
+                                        }}
+                                        className="absolute top-12 -right-4 w-8 h-8 -translate-x-0.5 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-20 backdrop-blur-sm"
+                                        title="Preview card"
+                                    >
+                                        👁
+                                    </button>
                                 </div>
-                                {/* Preview button */}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewCard(card);
-                                    }}
-                                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-800/80 hover:bg-slate-700 text-amber-100 text-xs font-bold flex items-center justify-center border border-slate-600 transition-all hover:scale-110 z-10"
-                                    title="Preview card"
-                                >
-                                    👁
-                                </button>
                                 {isSelected && (
                                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
                                         <div className="bg-black/80 text-emerald-400 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-500/50 shadow-xl backdrop-blur-sm transform -rotate-6">

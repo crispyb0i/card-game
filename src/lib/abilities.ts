@@ -258,23 +258,66 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Triggers the On Reveal ability of the last played card.',
         onReveal: ({ board, index, card, gameState }) => {
-            if (!gameState || !gameState.lastMove) return { board };
+            if (!gameState || !gameState.lastMove) {
+                console.log('Echo: No lastMove found');
+                return { board };
+            }
 
             const lastCard = gameState.lastMove.card;
-            if (lastCard.ability && lastCard.ability.trigger === 'onReveal') {
-                const definition = abilityCatalog[lastCard.ability.id];
-                if (definition && definition.onReveal) {
-                    // Trigger the ability as if THIS card used it
-                    // We pass 'card' (Echo) as the source, but use the logic of the other ability
-                    return definition.onReveal({
-                        board,
-                        index,
-                        card, // Echo card is the source
-                        gameState
-                    });
-                }
+            console.log('Echo: Last card:', lastCard.name, 'Current card:', card.name);
+            
+            // Don't echo if the last card was also an Echo (prevent infinite loops)
+            // Check by characterId to handle different card instances
+            if (lastCard.characterId === card.characterId && lastCard.characterId === 'echo-mage') {
+                console.log('Echo: Last card was also Echo, skipping');
+                return { board };
             }
-            return { board };
+            
+            if (!lastCard.ability || lastCard.ability.trigger !== 'onReveal') {
+                console.log('Echo: Last card has no onReveal ability');
+                return { board };
+            }
+            
+            const definition = abilityCatalog[lastCard.ability.id];
+            if (!definition || !definition.onReveal) {
+                console.log('Echo: Ability definition not found for', lastCard.ability.id);
+                return { board };
+            }
+            
+            console.log('Echo: Triggering ability', lastCard.ability.id, 'from', lastCard.name);
+            
+            // Get the actual card on the board (Echo Mage) - this is what will receive stat modifications
+            const boardCard = board[index];
+            if (!boardCard) {
+                console.log('Echo: No card found on board at index', index);
+                return { board };
+            }
+            
+            // For abilities that modify the card's stats (like Void Drain), we need to pass the actual board card
+            // For abilities that create copies (like Phantom), we need special handling
+            let cardToUse = boardCard;
+            
+            // Special case for Phantom - it needs to create a copy of the last card, not Echo
+            if (lastCard.ability.id === 'phantom') {
+                const lastCardClone = {
+                    ...lastCard,
+                    id: `${lastCard.id}-echo-${Date.now()}`,
+                    stats: { ...lastCard.stats },
+                    baseStats: lastCard.baseStats ? { ...lastCard.baseStats } : undefined,
+                    owner: boardCard.owner, // Use Echo's owner
+                };
+                cardToUse = lastCardClone;
+            }
+            
+            const result = definition.onReveal({
+                board,
+                index,
+                card: cardToUse, // Use board card for stat mods, clone for copy abilities
+                gameState
+            });
+            
+            console.log('Echo: Ability result', result);
+            return result;
         },
     },
     'amplify': { id: 'amplify', name: 'Amplify', trigger: 'ongoing', text: 'Ongoing: Doubles the effect of adjacent allied ongoing abilities.', ongoing: () => [] },
