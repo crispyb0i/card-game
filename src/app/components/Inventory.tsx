@@ -41,6 +41,35 @@ interface InventoryProps {
     onSaveDeck: (deck: CardType[]) => void;
 }
 
+// Helper function to map character IDs to deck slots
+const mapCharacterIdsToDeck = (characterIds: string[], cards: CardType[]): (string | null)[] => {
+    const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
+
+    // We need to match the character IDs in the deck to the specific Card instances we created above
+    // This is a bit tricky because we might have multiple of the same character
+    // For now, we'll just take the first available one of that type
+
+    const usedCardIds = new Set<string>();
+
+    characterIds.forEach(charId => {
+        // Find a card instance of this character that hasn't been used yet
+        const foundCard = cards.find(c => c.characterId === charId && !usedCardIds.has(c.id));
+
+        if (foundCard) {
+            // Find first available slot for this rarity
+            for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
+                if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
+                    newDeck[i] = foundCard.id;
+                    usedCardIds.add(foundCard.id);
+                    break;
+                }
+            }
+        }
+    });
+
+    return newDeck;
+};
+
 export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
     // Access Store
     const ownedCardIds = useStore((state) => state.ownedCards);
@@ -53,58 +82,31 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
     // Hydrate full card objects from IDs
-    const ownedCards = ownedCardIds.map((id, i) => {
-        // Handle both "inv-charId-index" and "charId" formats
-        // The store might just store "charId" for simplicity, but let's support unique IDs if we want duplicates later
-        // For now, let's assume the store holds CHARACTER IDs (e.g., 'squire', 'dragon')
-        // But to make them unique Card objects, we need to generate unique IDs
-        const charId = id.includes('inv-') ? id.split('-')[1] : id;
-        const char = CHARACTERS.find(c => c.id === charId);
+    const ownedCards = React.useMemo(() => {
+        return ownedCardIds.map((id, i): CardType | null => {
+            // Handle both "inv-charId-index" and "charId" formats
+            // The store might just store "charId" for simplicity, but let's support unique IDs if we want duplicates later
+            // For now, let's assume the store holds CHARACTER IDs (e.g., 'squire', 'dragon')
+            // But to make them unique Card objects, we need to generate unique IDs
+            const charId = id.includes('inv-') ? id.split('-')[1] : id;
+            const char = CHARACTERS.find(c => c.id === charId);
 
-        if (!char) return null;
+            if (!char) return null;
 
-        return {
-            id: `inv-${char.id}-${i}`, // Generate a unique ID for the UI instance
-            name: char.name,
-            imageUrl: char.imageUrl,
-            stats: { ...char.stats },
-            baseStats: { ...char.stats },
-            owner: 'player' as const,
-            rarity: char.rarity,
-            variant: 'base' as const,
-            characterId: char.id,
-            ability: char.ability,
-        };
-    }).filter((c): c is CardType => c !== null);
-
-    // Helper function to map character IDs to deck slots
-    const mapCharacterIdsToDeck = (characterIds: string[], cards: CardType[]): (string | null)[] => {
-        const newDeck: (string | null)[] = Array(DECK_SIZE).fill(null);
-
-        // We need to match the character IDs in the deck to the specific Card instances we created above
-        // This is a bit tricky because we might have multiple of the same character
-        // For now, we'll just take the first available one of that type
-
-        const usedCardIds = new Set<string>();
-
-        characterIds.forEach(charId => {
-            // Find a card instance of this character that hasn't been used yet
-            const foundCard = cards.find(c => c.characterId === charId && !usedCardIds.has(c.id));
-
-            if (foundCard) {
-                // Find first available slot for this rarity
-                for (let i = 0; i < SLOT_STRUCTURE.length; i++) {
-                    if (SLOT_STRUCTURE[i] === foundCard.rarity && newDeck[i] === null) {
-                        newDeck[i] = foundCard.id;
-                        usedCardIds.add(foundCard.id);
-                        break;
-                    }
-                }
-            }
-        });
-
-        return newDeck;
-    };
+            return {
+                id: `inv-${char.id}-${i}`, // Generate a unique ID for the UI instance
+                name: char.name,
+                imageUrl: char.imageUrl,
+                stats: { ...char.stats },
+                baseStats: { ...char.stats },
+                owner: 'player' as const,
+                rarity: char.rarity,
+                variant: 'base' as const,
+                characterId: char.id,
+                ability: char.ability,
+            };
+        }).filter((c): c is CardType => c !== null);
+    }, [ownedCardIds]);
 
     // Initialize local deck state from store
     const [localDeck, setLocalDeck] = useState<(string | null)[]>(() => {
@@ -114,7 +116,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
     // Update local deck when store changes (e.g. initial load)
     useEffect(() => {
         setLocalDeck(mapCharacterIdsToDeck(selectedDeckIds, ownedCards));
-    }, [selectedDeckIds]); // Only re-run if selectedDeckIds changes deeply (which it shouldn't often)
+    }, [selectedDeckIds, ownedCards]);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
         setToast({ message, type });
