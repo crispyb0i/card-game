@@ -247,8 +247,13 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             const emptyNeighbor = neighbors.find(idx => board[idx] === null);
 
             if (emptyNeighbor !== undefined) {
-                // Create copy
-                const copy = { ...card, id: `${card.id}-copy-${Date.now()}` };
+                // Create deep copy to avoid sharing stats object reference
+                const copy = {
+                    ...card,
+                    id: `${card.id}-copy-${Date.now()}`,
+                    stats: { ...card.stats },
+                    baseStats: card.baseStats ? { ...card.baseStats } : undefined
+                };
                 board[emptyNeighbor] = copy;
             }
             return { board };
@@ -261,37 +266,29 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         text: 'On Reveal: Triggers the On Reveal ability of the last played card.',
         onReveal: ({ board, index, card, gameState }) => {
             if (!gameState || !gameState.lastMove) {
-                console.log('Echo: No lastMove found');
                 return { board };
             }
 
             const lastCard = gameState.lastMove.card;
-            console.log('Echo: Last card:', lastCard.name, 'Current card:', card.name);
             
             // Don't echo if the last card was also an Echo (prevent infinite loops)
             // Check by characterId to handle different card instances
             if (lastCard.characterId === card.characterId && lastCard.characterId === 'echo-mage') {
-                console.log('Echo: Last card was also Echo, skipping');
                 return { board };
             }
             
             if (!lastCard.ability || lastCard.ability.trigger !== 'onReveal') {
-                console.log('Echo: Last card has no onReveal ability');
                 return { board };
             }
             
             const definition = abilityCatalog[lastCard.ability.id];
             if (!definition || !definition.onReveal) {
-                console.log('Echo: Ability definition not found for', lastCard.ability.id);
                 return { board };
             }
-            
-            console.log('Echo: Triggering ability', lastCard.ability.id, 'from', lastCard.name);
             
             // Get the actual card on the board (Echo Mage) - this is what will receive stat modifications
             const boardCard = board[index];
             if (!boardCard) {
-                console.log('Echo: No card found on board at index', index);
                 return { board };
             }
             
@@ -318,7 +315,6 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
                 gameState
             });
             
-            console.log('Echo: Ability result', result);
             return result;
         },
     },
@@ -763,6 +759,90 @@ export const collectAllModifiers = (board: Board, mapId?: MapId): AbilityModifie
     });
 
     return combined;
+};
+
+// Calculate what modifiers would apply if a card were placed at a specific slot
+// This simulates placing the card temporarily to calculate ongoing modifiers
+export const calculatePreviewModifiers = (board: Board, card: Card, targetIndex: number, mapId?: MapId): Partial<CardStats> => {
+    // Create a temporary board with the card placed at targetIndex
+    const tempBoard = [...board];
+    tempBoard[targetIndex] = card;
+    
+    // Calculate modifiers for this temporary board
+    const modifiers = collectAllModifiers(tempBoard, mapId);
+    
+    // Return the modifiers that would apply to the card at targetIndex
+    return modifiers[targetIndex] || {};
+};
+
+// Calculate fully resolved stats after On Reveal ability and ongoing modifiers
+// This simulates the complete resolution: place card -> trigger On Reveal -> apply ongoing modifiers
+export const calculateResolvedStats = (
+    board: Board,
+    card: Card,
+    targetIndex: number,
+    mapId?: MapId,
+    gameState?: Partial<GameState>
+): CardStats => {
+    // Deep clone the card to avoid mutating the original
+    const cardClone: Card = {
+        ...card,
+        stats: { ...card.stats },
+        baseStats: card.baseStats ? { ...card.baseStats } : undefined
+    };
+    
+    // Step 1: Create deep copy of board to avoid mutating original cards
+    // This is critical because On Reveal abilities (like Void Drain) mutate card stats
+    const tempBoard: Board = board.map((slot) => {
+        if (!slot) return null;
+        return {
+            ...slot,
+            stats: { ...slot.stats },
+            baseStats: slot.baseStats ? { ...slot.baseStats } : undefined
+        };
+    });
+    tempBoard[targetIndex] = cardClone;
+    
+    // Step 2: Apply On Reveal ability if it exists
+    if (cardClone.ability && cardClone.ability.trigger === 'onReveal') {
+        const definition = abilityCatalog[cardClone.ability.id];
+        if (definition && definition.onReveal) {
+            // Special handling for random abilities (Gambit)
+            if (cardClone.ability.id === 'gambit') {
+                // For preview, show average (no change) since it's random
+                // Could also show +1 or -1, but average is most neutral
+            } else {
+                // Apply the On Reveal ability
+                const result = definition.onReveal({
+                    board: tempBoard,
+                    index: targetIndex,
+                    card: cardClone,
+                    gameState: gameState as GameState
+                });
+                
+                // Update tempBoard if it was modified
+                if (result.board) {
+                    // Copy back the modified card stats
+                    const modifiedCard = result.board[targetIndex];
+                    if (modifiedCard) {
+                        cardClone.stats = { ...modifiedCard.stats };
+                    }
+                }
+            }
+        }
+    }
+    
+    // Step 3: Calculate ongoing modifiers on top of the resolved stats
+    const modifiers = collectAllModifiers(tempBoard, mapId);
+    const ongoingMods = modifiers[targetIndex] || {};
+    
+    // Step 4: Return final resolved stats
+    return {
+        top: cardClone.stats.top + (ongoingMods.top || 0),
+        right: cardClone.stats.right + (ongoingMods.right || 0),
+        bottom: cardClone.stats.bottom + (ongoingMods.bottom || 0),
+        left: cardClone.stats.left + (ongoingMods.left || 0),
+    };
 };
 
 // New function to get detailed modifier breakdown with sources

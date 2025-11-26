@@ -4,12 +4,13 @@ import React, { useState } from 'react';
 import { useGameLogic } from '../../hooks/useGameLogic';
 import { Board } from './Board';
 import { Card } from './Card';
-import { Card as CardType, Player, Board as BoardState, AIDifficulty } from '../../lib/types';
+import { Card as CardType, Player, Board as BoardState, AIDifficulty, CardStats } from '../../lib/types';
 import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
 import { HowToPlay } from './HowToPlay';
 import CoinFlip from './CoinFlip';
 import { CHARACTERS } from '../../lib/cards';
+import { calculateResolvedStats } from '../../lib/abilities';
 
 const computeFinalScores = (board: BoardState, startingPlayer: Player) => {
     let playerCount = 0;
@@ -43,7 +44,6 @@ export const Game: React.FC = () => {
     const [view, setView] = useState<ViewState>('menu');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
     const [showStarterPicker, setShowStarterPicker] = useState(false);
-
     const liveScores = computeFinalScores(gameState.board, gameState.startingPlayer);
 
     const onDragStart = (e: React.DragEvent, card: CardType) => {
@@ -64,6 +64,11 @@ export const Game: React.FC = () => {
     };
 
     const onDragLeave = () => {
+        setHoveredSlot(null);
+    };
+
+    const onDragEnd = () => {
+        setDraggedCard(null);
         setHoveredSlot(null);
     };
 
@@ -95,14 +100,13 @@ export const Game: React.FC = () => {
     }
 
     if (view === 'inventory') {
-        return <Inventory onBack={() => setView('menu')} onSaveDeck={(deck) => {
+        return <Inventory onBack={() => setView('menu')} onSaveDeck={() => {
             // Update game logic with new deck (need to expose a setPlayerDeck method in useGameLogic or just reload)
             // For now, we rely on localStorage and next game start will pick it up, 
             // OR we can pass it to useGameLogic if we refactor it.
             // Let's just save to local storage (handled in Inventory) and maybe force a reset?
             // Actually, useGameLogic initializes from createDeck.
             // We should update useGameLogic to accept an initial deck.
-            console.log("Deck saved:", deck);
         }} />;
     }
 
@@ -125,15 +129,45 @@ export const Game: React.FC = () => {
                 <div className="flex flex-col gap-2">
                     <h2 className="text-amber-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Player</h2>
                     <div className="flex flex-col gap-3">
-                        {gameState.playerHand.map((card) => (
-                            <Card
-                                key={card.id}
-                                card={card}
-                                isDraggable={gameState.currentPlayer === 'player'}
-                                onDragStart={onDragStart}
-                                onClick={(c) => setPreviewCard(c)}
-                            />
-                        ))}
+                        {gameState.playerHand.map((card) => {
+                            // Calculate resolved stats if this card is being dragged and hovering over a slot
+                            // This includes On Reveal ability resolution + ongoing modifiers
+                            let previewModifiers: Partial<CardStats> | undefined = undefined;
+                            
+                            if (draggedCard?.id === card.id && hoveredSlot !== null) {
+                                const resolvedStats = calculateResolvedStats(
+                                    gameState.board,
+                                    card,
+                                    hoveredSlot,
+                                    gameState.currentMapId,
+                                    gameState
+                                );
+                                
+                                // Calculate the difference from current stats to show as modifiers
+                                // This will show the total change including On Reveal + ongoing modifiers
+                                const baseStats = card.baseStats ?? card.stats;
+                                previewModifiers = {
+                                    top: resolvedStats.top - baseStats.top,
+                                    right: resolvedStats.right - baseStats.right,
+                                    bottom: resolvedStats.bottom - baseStats.bottom,
+                                    left: resolvedStats.left - baseStats.left,
+                                };
+                            }
+                            
+                            return (
+                                <Card
+                                    key={card.id}
+                                    card={card}
+                                    isDraggable={gameState.currentPlayer === 'player'}
+                                    onDragStart={onDragStart}
+                                    onDragEnd={onDragEnd}
+                                    onClick={(c) => setPreviewCard(c)}
+                                    previewModifiers={previewModifiers}
+                                    isDragOverlay={draggedCard?.id === card.id}
+                                    isDimmed={!!draggedCard && draggedCard.id !== card.id}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
 
@@ -265,6 +299,7 @@ export const Game: React.FC = () => {
             )}
 
             <CoinFlip onResult={handleStartingPlayerChosen} show={showStarterPicker} />
+            
         </div>
     );
 };

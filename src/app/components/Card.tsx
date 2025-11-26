@@ -2,8 +2,14 @@
 
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { Card as CardType } from '../../lib/types';
-import Image from 'next/image';
+import { Card as CardType, CardStats } from '../../lib/types';
+import NextImage from 'next/image';
+
+declare global {
+    interface Window {
+        __dragTransparentImage?: HTMLImageElement;
+    }
+}
 import { getModifierBreakdown } from '../../lib/abilities';
 import type { MapEffectInstance } from '../../lib/maps';
 
@@ -11,54 +17,55 @@ interface CardProps {
     card: CardType;
     isDraggable?: boolean;
     onDragStart?: (e: React.DragEvent, card: CardType) => void;
+    onDragEnd?: () => void;
     className?: string;
     onClick?: (card: CardType) => void;
     board?: (CardType | null)[];  // For showing modifier breakdown
     boardIndex?: number;  // Index of this card on the board
     envEffect?: MapEffectInstance; // If present, this card is being modified by the environment
+    previewModifiers?: Partial<CardStats>; // Modifiers to show when dragging over a slot
+    isDragOverlay?: boolean;
+    isDimmed?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragStart, className = '', onClick, board, boardIndex, envEffect }) => {
+export const Card: React.FC<CardProps> = ({
+    card,
+    isDraggable = false,
+    onDragStart,
+    onDragEnd,
+    className = '',
+    onClick,
+    board,
+    boardIndex,
+    envEffect,
+    previewModifiers,
+    isDragOverlay = false,
+    isDimmed = false,
+}) => {
     const handleDragStart = (e: React.DragEvent) => {
         if (isDraggable && onDragStart) {
             setIsDragging(true);
             onDragStart(e, card);
             e.dataTransfer.setData('cardId', card.id);
 
-            // Create a custom drag image to avoid border clipping
-            const node = e.currentTarget as HTMLElement;
-            if (e.dataTransfer && node) {
-                // Clone the node to use as drag image
-                const clone = node.cloneNode(true) as HTMLElement;
-                clone.style.position = 'absolute';
-                clone.style.top = '-9999px';
-                clone.style.left = '-9999px';
-                clone.style.opacity = '0.95';
-                clone.style.transform = 'rotate(3deg)';
-                clone.style.pointerEvents = 'none';
-                // Ensure borders are included
-                clone.style.boxSizing = 'border-box';
-                document.body.appendChild(clone);
-                
-                // Force a reflow to ensure the clone is rendered
-                clone.offsetHeight;
-                
-                const rect = node.getBoundingClientRect();
-                // Use the center of the card, accounting for borders
-                e.dataTransfer.setDragImage(clone, rect.width / 2, rect.height / 2);
-                
-                // Clean up after drag starts
-                requestAnimationFrame(() => {
-                    if (document.body.contains(clone)) {
-                        document.body.removeChild(clone);
-                    }
-                });
+            if (e.dataTransfer && typeof window !== 'undefined') {
+                if (!window.__dragTransparentImage) {
+                    const img = new window.Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+                    img.width = 1;
+                    img.height = 1;
+                    window.__dragTransparentImage = img;
+                }
+                e.dataTransfer.setDragImage(window.__dragTransparentImage, 0, 0);
             }
         }
     };
 
     const handleDragEnd = () => {
         setIsDragging(false);
+        if (onDragEnd) {
+            onDragEnd();
+        }
     };
 
     const isPlayer = card.owner === 'player';
@@ -120,6 +127,16 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
         : '';
 
     const baseStats = card.baseStats ?? card.stats;
+    
+    // Apply preview modifiers if provided (when dragging over a slot)
+    // When showing preview, we show resolved stats relative to base stats
+    const displayStats = previewModifiers ? {
+        top: baseStats.top + (previewModifiers.top || 0),
+        right: baseStats.right + (previewModifiers.right || 0),
+        bottom: baseStats.bottom + (previewModifiers.bottom || 0),
+        left: baseStats.left + (previewModifiers.left || 0),
+    } : card.stats;
+    
     const statTrendClass = (value: number, base: number) => {
         if (value > base) return 'text-emerald-300';
         if (value < base) return 'text-rose-300';
@@ -169,8 +186,9 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
     return (
         <div
             ref={cardRef}
-            className={`relative inline-block ${showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[99999]' : ''
-                }`}
+            className={`relative inline-block transition-transform ${
+                showEnvTooltip || showAbilityTooltip || showStatsTooltip ? 'z-[99999]' : ''
+            } ${isDragOverlay ? 'z-[100000]' : ''} ${isDimmed ? 'opacity-30' : ''}`}
         >
             <div
                 draggable={isDraggable}
@@ -183,7 +201,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
         ${bgColor} ${className} ${rarityStyle} ${abilityGlow}
         ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:scale-110 hover:z-20' : 'cursor-pointer'}
         ${isFlipping ? 'animate-flip' : ''}
-        ${isDragging ? 'opacity-30' : ''}
+        ${isDragOverlay ? 'scale-125 shadow-2xl ring-4 ring-cyan-400' : ''}
       `}
                 style={{
                     transform: `rotateY(${isPlayer ? '0deg' : '0deg'})`,
@@ -192,16 +210,16 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
             >
                 {/* Stats Overlay */}
                 <div
-                    className={`absolute -top-3 -left-3 flex flex-col items-center justify-center font-serif font-black text-[11px] leading-tight bg-black/80 rounded-md px-1.5 py-1 backdrop-blur-sm border border-white/30 shadow-lg z-20 cursor-help`}
+                    className={`absolute -top-3 -left-3 flex flex-col items-center justify-center font-serif font-black text-[11px] leading-tight bg-black/80 rounded-md px-1.5 py-1 backdrop-blur-sm border border-white/30 shadow-lg z-20 cursor-help ${previewModifiers ? 'ring-2 ring-cyan-400 ring-opacity-70' : ''}`}
                     onMouseEnter={() => setShowStatsTooltip(true)}
                     onMouseLeave={() => setShowStatsTooltip(false)}
                 >
-                    <div className={statTrendClass(card.stats.top, baseStats.top)}>{card.stats.top}</div>
+                    <div className={statTrendClass(displayStats.top, baseStats.top)}>{displayStats.top}</div>
                     <div className="flex gap-1">
-                        <span className={statTrendClass(card.stats.left, baseStats.left)}>{card.stats.left}</span>
-                        <span className={statTrendClass(card.stats.right, baseStats.right)}>{card.stats.right}</span>
+                        <span className={statTrendClass(displayStats.left, baseStats.left)}>{displayStats.left}</span>
+                        <span className={statTrendClass(displayStats.right, baseStats.right)}>{displayStats.right}</span>
                     </div>
-                    <div className={statTrendClass(card.stats.bottom, baseStats.bottom)}>{card.stats.bottom}</div>
+                    <div className={statTrendClass(displayStats.bottom, baseStats.bottom)}>{displayStats.bottom}</div>
                 </div>
 
                 {envEffect && (
@@ -231,7 +249,7 @@ export const Card: React.FC<CardProps> = ({ card, isDraggable = false, onDragSta
 
                 {/* Inner Frame for Image */}
                 <div className="relative w-full flex-1 min-h-[80%] bg-slate-900 rounded-md overflow-hidden border border-black/20 mb-0.5 z-0">
-                    <Image
+                    <NextImage
                         src={card.imageUrl}
                         alt={card.name}
                         fill

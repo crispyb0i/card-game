@@ -79,13 +79,12 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 playLose();
             }
 
-            // Award Credits
-            if (typeof window !== 'undefined') {
-                const currentCredits = parseInt(localStorage.getItem('credits') || '1000');
-                const award = winner === 'player' ? 50 : 10;
-                localStorage.setItem('credits', (currentCredits + award).toString());
-                console.log(`Awarded ${award} credits. New total: ${currentCredits + award}`);
-            }
+            // Award Credits - PAUSED
+            // if (typeof window !== 'undefined') {
+            //     const currentCredits = parseInt(localStorage.getItem('credits') || '1000');
+            //     const award = winner === 'player' ? 50 : 10;
+            //     localStorage.setItem('credits', (currentCredits + award).toString());
+            // }
             return winner;
         }
         return null;
@@ -141,12 +140,14 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 newBoard = abilityResult.board;
             }
 
+            const placedCard = (newBoard[index] ?? cardClone);
+
             // 3. Calculate captures
-            const capturedIndices = calculateCapture(newBoard, card, index, prev.currentMapId);
+            const capturedIndices = calculateCapture(newBoard, placedCard, index, prev.currentMapId);
             capturedIndices.forEach((capturedIndex) => {
                 const capturedCard = newBoard[capturedIndex];
                 if (capturedCard) {
-                    newBoard[capturedIndex] = { ...capturedCard, owner: card.owner };
+                    newBoard[capturedIndex] = { ...capturedCard, owner: placedCard.owner };
                 }
             });
 
@@ -186,7 +187,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 winner: winner || prev.winner,
                 lastMove: {
                     player: prev.currentPlayer,
-                    card: cardClone,
+                    card: placedCard,
                     index: index
                 },
                 ...abilityResult.gameState
