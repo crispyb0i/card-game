@@ -110,7 +110,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
     const modifierMap = collectAllModifiers(board, mapId);
 
     return (
-        <div className="grid grid-cols-3 gap-3 p-4 bg-slate-800 rounded-xl border-[6px] border-slate-700 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-3 p-1 sm:p-2 md:p-4 bg-slate-800 rounded-lg md:rounded-xl border-2 md:border-[6px] border-slate-700 shadow-[0_0_40px_rgba(15,23,42,0.9)]">
             {board.map((card, index) => {
                 const isCapturedPreview = previewCaptures.includes(index);
                 const isHovered = hoveredSlot === index && !card;
