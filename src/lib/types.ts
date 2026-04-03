@@ -80,6 +80,7 @@ export interface GameState {
     winner: Player | 'draw' | null;
     activeEffects?: string[]; // e.g. 'delay-reveal'
     currentMapId?: MapId;
+    seed?: number;
     lastMove?: {
         player: Player;
         card: Card;
