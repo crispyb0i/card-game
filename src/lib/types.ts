@@ -133,3 +133,26 @@ export interface AbilitySummary {
     name: string;
     description: string;
 }
+
+// ---------------------------------------------------------------------------
+// Game Actions — discriminated union for useReducer-based game state machine
+// ---------------------------------------------------------------------------
+
+export type GameAction =
+    | { type: 'PLACE_CARD'; card: Card; index: number }
+    | { type: 'RESET_GAME'; startingPlayer?: Player; playerDeckIds?: string[] }
+    | { type: 'SET_STARTING_PLAYER'; player: Player }
+    | { type: 'SET_PREVIEW_CAPTURES'; captures: number[] }
+    | { type: 'CLEAR_PREVIEW_CAPTURES' };
+
+// Combined state managed by the game reducer (game state + UI ephemeral state)
+export interface FullGameState {
+    game: GameState;
+    previewCaptures: number[];
+    // Flags consumed by the hook to fire side-effects after dispatch
+    _sideEffects: SideEffect[];
+}
+
+export type SideEffect =
+    | { type: 'SOUND'; sound: 'cardPlace' | 'cardCapture' | 'win' | 'lose' }
+    | { type: 'AWARD_CREDITS'; winner: Player | 'draw' };
