@@ -28,13 +28,13 @@
 ## 30-Day Sprint Plan
 
 ### Week 1: Foundation & Deploy
-- [ ] Day 1: PM writes economy design doc; Backend produces shared `types.ts` (GameState + Action signatures)
+- [x] Day 1: PM writes economy design doc; Backend produces shared `types.ts` (GameState + Action signatures)
 - [ ] Day 1–2: PM + Backend + Frontend alignment session on state shape and Firestore compatibility
-- [ ] Day 1–3: Backend makes game engine functions pure (no side effects); adds seeded PRNG
-- [ ] Day 1–3: Research completes or removes 7 stub abilities
-- [ ] Day 2–3: Frontend begins mutation elimination in card/ability code
-- [ ] Day 3–4: Frontend uncomments credit rewards with tuned rates; gates inventory behind shop purchases
-- [ ] Day 4: PM deploys to Vercel; Business wires 5 analytics events; Marketing adds OG metadata
+- [x] Day 1–3: Backend makes game engine functions pure (no side effects); adds seeded PRNG
+- [x] Day 1–3: Research completes or removes 7 stub abilities
+- [x] Day 2–3: Frontend begins mutation elimination in card/ability code
+- [x] Day 3–4: Frontend uncomments credit rewards with tuned rates; gates inventory behind shop purchases
+- [x] Day 4: PM deploys to Vercel; Business wires 5 analytics events; Marketing adds OG metadata
 - [ ] Day 5: Marketing creates gameplay GIFs and seeds first community post (r/TripleTriad)
 
 ### Week 2: State Machine & Animations
