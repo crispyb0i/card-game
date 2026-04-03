@@ -84,17 +84,32 @@ const buildInitialGameState = (
     };
 };
 
-/** Read saved player deck IDs from localStorage (browser-only). */
+/** Read saved player deck IDs from localStorage (browser-only).
+ *  Falls back to owned cards if no deck is saved. */
 const readPlayerDeckIds = (): string[] | undefined => {
     if (typeof window === 'undefined') return undefined;
+
+    // Try saved deck first
     const saved = localStorage.getItem('playerDeck');
-    if (!saved) return undefined;
-    try {
-        return JSON.parse(saved);
-    } catch (e) {
-        console.error('Failed to parse deck', e);
-        return undefined;
+    if (saved) {
+        try {
+            return JSON.parse(saved);
+        } catch (e) {
+            console.error('Failed to parse deck', e);
+        }
     }
+
+    // No saved deck — fall back to owned cards
+    const ownedRaw = localStorage.getItem('ownedCards');
+    if (ownedRaw) {
+        try {
+            return JSON.parse(ownedRaw);
+        } catch (e) {
+            console.error('Failed to parse ownedCards', e);
+        }
+    }
+
+    return undefined;
 };
 
 // ---------------------------------------------------------------------------
