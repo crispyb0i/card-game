@@ -132,12 +132,15 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
     let s = seed ?? Date.now();
 
     if (characterIds && characterIds.length > 0) {
-        // Player deck - use only provided character IDs (no random padding)
-        const validCount = Math.min(count, characterIds.length);
-        return Array.from({ length: validCount }).map((_, i) => {
-            let char = CHARACTERS.find(c => c.id === characterIds[i]);
+        // Player deck - use provided character IDs
+        return Array.from({ length: count }).map((_, i) => {
+            let char;
 
-            // Fallback only if a specific ID wasn't found (shouldn't happen normally)
+            if (characterIds[i]) {
+                char = CHARACTERS.find(c => c.id === characterIds[i]);
+            }
+
+            // Fallback to seeded random if not found
             if (!char) {
                 const r = seededRandomInt(s, CHARACTERS.length);
                 s = r.nextSeed;
