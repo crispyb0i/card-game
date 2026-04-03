@@ -50,31 +50,8 @@ interface InventoryProps {
 }
 
 export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
-    // Load owned character IDs from localStorage (default to starter deck)
-    const ownedCharacterIds: string[] = (() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('ownedCards');
-            if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    console.error("Failed to parse ownedCards", e);
-                }
-            }
-            // First time: seed with starter deck and starting credits
-            localStorage.setItem('ownedCards', JSON.stringify(DEFAULT_STARTER_IDS));
-            if (!localStorage.getItem('credits')) {
-                localStorage.setItem('credits', '500');
-            }
-        }
-        return [...DEFAULT_STARTER_IDS];
-    })();
-
-    // Create inventory cards from only the characters the player owns
-    const ownedCards = ownedCharacterIds
-        .map(charId => CHARACTERS.find(c => c.id === charId))
-        .filter((char): char is NonNullable<typeof char> => char != null)
-        .map((char, i) => ({
+    // All characters are available for deck building
+    const ownedCards = CHARACTERS.map((char, i) => ({
             id: `inv-${char.id}-${i}`,
             name: char.name,
             imageUrl: char.imageUrl,
