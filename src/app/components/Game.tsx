@@ -121,6 +121,11 @@ export const Game: React.FC = () => {
                 ← MENU
             </button>
 
+            {/* Volume Control */}
+            <div className="absolute top-4 right-4">
+                <VolumeControl />
+            </div>
+
             <h1 className="text-xl sm:text-2xl md:text-4xl font-bold mb-2 sm:mb-4 md:mb-8 tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 drop-shadow-md">
                 MYTHIC TRIAD
             </h1>
