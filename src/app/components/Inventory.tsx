@@ -198,8 +198,8 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
         <div className="min-h-screen bg-slate-950 text-amber-100 font-serif flex flex-col md:flex-row">
             {/* Card Collection */}
             <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto h-[calc(100vh-64px)] md:h-screen">
-                <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-8">
-                    <div className="flex items-center gap-2 sm:gap-4">
+                <header className="mb-4 sm:mb-8">
+                    <div className="flex items-center gap-2 sm:gap-4 mb-3">
                         <button
                             onClick={onBack}
                             className="flex items-center gap-1 sm:gap-2 px-2 py-1.5 sm:px-4 sm:py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-md border border-slate-600 hover:border-slate-400 transition-colors text-sm"
@@ -213,13 +213,13 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                         </h1>
                     </div>
 
-                    {/* Filters */}
-                    <div className="flex gap-1 sm:gap-2 flex-wrap">
+                    {/* Filters — single scrollable row on mobile */}
+                    <div className="flex gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar">
                         {(['all', 'common', 'rare', 'epic', 'legendary'] as const).map((r) => (
                             <button
                                 key={r}
                                 onClick={() => setFilter(r)}
-                                className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-all
+                                className={`px-2.5 py-1 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider border transition-all whitespace-nowrap shrink-0
                   ${filter === r
                                         ? 'bg-amber-600 border-amber-400 text-white'
                                         : 'bg-slate-800 border-slate-600 text-slate-400 hover:bg-slate-700'}
