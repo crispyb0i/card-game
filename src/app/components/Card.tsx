@@ -261,13 +261,13 @@ export const Card: React.FC<CardProps> = ({
                 )}
 
                 {/* Inner Frame for Image */}
-                <div className="relative w-full flex-1 min-h-[80%] bg-slate-900 rounded-md overflow-hidden border border-black/20 mb-0.5 z-0">
+                <div className="relative w-full flex-1 min-h-[80%] bg-slate-900 rounded-sm sm:rounded-md overflow-hidden border border-black/20 mb-0 sm:mb-0.5 z-0">
                     <NextImage
                         src={card.imageUrl}
                         alt={card.name}
                         fill
                         className="object-cover"
-                        sizes="128px"
+                        sizes="(max-width: 640px) 56px, (max-width: 768px) 80px, 128px"
                         draggable={false}
                     />
                 </div>
