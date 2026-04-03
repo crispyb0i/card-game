@@ -116,13 +116,16 @@ export const checkWinCondition = (board: Board, startingPlayer?: Player): Player
     return 'draw';
 };
 
-export const generateRandomStats = (): { top: number; right: number; bottom: number; left: number } => {
-    return {
-        top: Math.floor(Math.random() * 9) + 1,
-        right: Math.floor(Math.random() * 9) + 1,
-        bottom: Math.floor(Math.random() * 9) + 1,
-        left: Math.floor(Math.random() * 9) + 1,
-    };
+export const generateRandomStats = (seed?: number): { top: number; right: number; bottom: number; left: number; nextSeed: number } => {
+    let s = seed ?? Date.now();
+    let r: { value: number; nextSeed: number };
+
+    r = seededRandomInt(s, 9); const top = r.value + 1; s = r.nextSeed;
+    r = seededRandomInt(s, 9); const right = r.value + 1; s = r.nextSeed;
+    r = seededRandomInt(s, 9); const bottom = r.value + 1; s = r.nextSeed;
+    r = seededRandomInt(s, 9); const left = r.value + 1; s = r.nextSeed;
+
+    return { top, right, bottom, left, nextSeed: s };
 };
 
 export const createDeck = (owner: Player, count: number = 5, characterIds?: string[]): Card[] => {
