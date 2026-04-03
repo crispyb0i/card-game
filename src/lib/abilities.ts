@@ -12,6 +12,7 @@ import {
     BOARD_SIZE
 } from './types';
 import { collectMapModifiers } from './maps';
+import { seededRandom } from './gameEngine';
 
 // Helper to get adjacent indices (up, down, left, right)
 const getAdjacentIndices = (index: number): number[] => {
@@ -26,6 +27,18 @@ const getAdjacentIndices = (index: number): number[] => {
 
     return adjacent;
 };
+
+// Helper to deep-clone a board without mutating the original
+const cloneBoard = (board: Board): Board =>
+    board.map((slot) =>
+        slot
+            ? {
+                  ...slot,
+                  stats: { ...slot.stats },
+                  baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
+              }
+            : null,
+    );
 
 export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
     'guardian-aura': {
@@ -67,35 +80,32 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Charges vertically in both directions, battling through up to two enemy cards in this column using its top vs their bottom.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const row = Math.floor(index / BOARD_SIZE);
             const col = index % BOARD_SIZE;
 
-            // Charge in both vertical directions (up and down)
-            const directions = [-1, 1]; // -1 = up, +1 = down
+            const directions = [-1, 1];
 
             directions.forEach(direction => {
-                // Charge up to 2 spaces in each direction
                 for (let offset = 1; offset <= 2; offset++) {
                     const targetRow = row + (offset * direction);
                     if (targetRow < 0 || targetRow >= BOARD_SIZE) break;
 
                     const targetIndex = targetRow * BOARD_SIZE + col;
-                    const target = board[targetIndex];
+                    const target = newBoard[targetIndex];
 
-                    // Stop if we hit an empty space or an ally
                     if (!target || target.owner === card.owner) break;
 
                     const attackerStat = card.stats.top;
                     const defenderStat = target.stats.bottom;
 
-                    // Capture if attacker wins
                     if (attackerStat > defenderStat) {
-                        board[targetIndex] = { ...target, owner: card.owner };
+                        newBoard[targetIndex] = { ...target, owner: card.owner };
                     }
                 }
             });
 
-            return { board };
+            return { board: newBoard };
         },
     },
     'rally': {
@@ -104,25 +114,31 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: +1 to all sides of adjacent allied cards.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
             neighbors.forEach(targetIndex => {
-                const target = board[targetIndex];
+                const target = newBoard[targetIndex];
                 if (target && target.owner === card.owner) {
-                    // Permanent buff
-                    target.stats.top += 1;
-                    target.stats.right += 1;
-                    target.stats.bottom += 1;
-                    target.stats.left += 1;
-                    // Also update base stats to persist through modifier recalculations if needed
-                    if (target.baseStats) {
-                        target.baseStats.top += 1;
-                        target.baseStats.right += 1;
-                        target.baseStats.bottom += 1;
-                        target.baseStats.left += 1;
-                    }
+                    newBoard[targetIndex] = {
+                        ...target,
+                        stats: {
+                            top: target.stats.top + 1,
+                            right: target.stats.right + 1,
+                            bottom: target.stats.bottom + 1,
+                            left: target.stats.left + 1,
+                        },
+                        baseStats: target.baseStats
+                            ? {
+                                  top: target.baseStats.top + 1,
+                                  right: target.baseStats.right + 1,
+                                  bottom: target.baseStats.bottom + 1,
+                                  left: target.baseStats.left + 1,
+                              }
+                            : undefined,
+                    };
                 }
             });
-            return { board };
+            return { board: newBoard };
         },
     },
     'assassin': {
@@ -131,28 +147,15 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Destroys the enemy card at the mirrored position across the board.',
         onReveal: ({ board, index, card }) => {
-            // "Opposite" usually implies across the board or specific direction. 
-            // For simplicity, let's say it targets the card directly above (if player) or below (if opponent).
-            // Or maybe it targets the last played card? 
-            // Let's implement: Targets the card directly facing its strongest side? 
-            // Let's go with: Targets the card in the same column on the opposite side of the board?
-            // Actually, let's implement: Destroys the card directly ABOVE it (if player) or BELOW it (if opponent) if it's an enemy.
-
-            // Determine target direction based on owner (Player is usually bottom, Opponent top)
-            // But in this grid, it's just a 3x3. Let's say it targets the card "in front".
-            // If we don't have orientation, let's check all adjacent enemies and destroy the weakest one?
-            // Let's stick to the text: "Destroy the card opposite".
-            // Let's interpret "opposite" as the mirror position on the board? 
-            // Center (4) -> Center (4). 0 -> 8. 1 -> 7. etc.
-
+            const newBoard = cloneBoard(board);
             const targetIndex = (BOARD_SIZE * BOARD_SIZE - 1) - index;
-            const target = board[targetIndex];
+            const target = newBoard[targetIndex];
 
             if (target && target.owner !== card.owner) {
-                board[targetIndex] = null; // Destroy!
+                newBoard[targetIndex] = null;
             }
 
-            return { board };
+            return { board: newBoard };
         },
     },
     'crusader': {
@@ -169,9 +172,6 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             });
 
             if (allyCount > 0) {
-                // This modifier applies to SELF. 
-                // The current architecture expects us to return modifiers for *other* cards usually, 
-                // but we can return a modifier for the source card too if we find its index.
                 const sourceIndex = board.findIndex(c => c?.id === card.id);
                 if (sourceIndex !== -1) {
                     return [{
@@ -189,15 +189,16 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: If placed in a corner, destroy the enemy card in the opposite corner.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const corners = [0, 2, 6, 8];
             if (corners.includes(index)) {
                 const oppositeIndex = (BOARD_SIZE * BOARD_SIZE - 1) - index;
-                const target = board[oppositeIndex];
+                const target = newBoard[oppositeIndex];
                 if (target && target.owner !== card.owner) {
-                    board[oppositeIndex] = null;
+                    newBoard[oppositeIndex] = null;
                 }
             }
-            return { board };
+            return { board: newBoard };
         },
     },
     'swap': {
@@ -206,57 +207,41 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Swap positions with an adjacent enemy card.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
-            // Find an adjacent enemy
-            const enemyNeighborIndex = neighbors.find(idx => board[idx] && board[idx]?.owner !== card.owner);
+            const enemyNeighborIndex = neighbors.find(idx => newBoard[idx] && newBoard[idx]?.owner !== card.owner);
 
             if (enemyNeighborIndex !== undefined) {
-                const enemyCard = board[enemyNeighborIndex];
-                // Swap
-                board[index] = enemyCard!;
-                board[enemyNeighborIndex] = card;
+                const enemyCard = newBoard[enemyNeighborIndex];
+                const selfCard = newBoard[index];
+                newBoard[index] = enemyCard;
+                newBoard[enemyNeighborIndex] = selfCard;
             }
-            return { board };
+            return { board: newBoard };
         },
-    },
-    'pull': {
-        id: 'pull',
-        name: 'Pull',
-        trigger: 'onReveal',
-        text: 'On Reveal: Pulls the furthest enemy in this row/column adjacent to this card.',
-        onReveal: ({ board }) => {
-            // Implementation complex, skipping for brevity in this restoration unless specifically requested.
-            // Placeholder:
-            return { board };
-        },
-    },
-    'anchor': {
-        id: 'anchor',
-        name: 'Anchor',
-        trigger: 'ongoing',
-        text: 'Ongoing: Cannot be moved or destroyed.',
-        ongoing: () => [], // Logic handled in game engine checks usually
     },
     'phantom': {
         id: 'phantom',
         name: 'Phantom',
         trigger: 'onReveal',
         text: 'On Reveal: Creates a copy of itself in an empty adjacent slot.',
-        onReveal: ({ board, index, card }) => {
+        onReveal: ({ board, index, card, gameState }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
-            const emptyNeighbor = neighbors.find(idx => board[idx] === null);
+            const emptyNeighbor = neighbors.find(idx => newBoard[idx] === null);
 
             if (emptyNeighbor !== undefined) {
-                // Create deep copy to avoid sharing stats object reference
-                const copy = {
+                const seed = gameState?.seed ?? Date.now();
+                const { value: randomVal } = seededRandom(seed);
+                const copy: Card = {
                     ...card,
-                    id: `${card.id}-copy-${Date.now()}`,
+                    id: `${card.id}-copy-${Math.floor(randomVal * 1e9)}`,
                     stats: { ...card.stats },
                     baseStats: card.baseStats ? { ...card.baseStats } : undefined
                 };
-                board[emptyNeighbor] = copy;
+                newBoard[emptyNeighbor] = copy;
             }
-            return { board };
+            return { board: newBoard };
         },
     },
     'echo': {
@@ -270,67 +255,63 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             }
 
             const lastCard = gameState.lastMove.card;
-            
+
             // Don't echo if the last card was also an Echo (prevent infinite loops)
-            // Check by characterId to handle different card instances
             if (lastCard.characterId === card.characterId && lastCard.characterId === 'echo-mage') {
                 return { board };
             }
-            
+
             if (!lastCard.ability || lastCard.ability.trigger !== 'onReveal') {
                 return { board };
             }
-            
+
             const definition = abilityCatalog[lastCard.ability.id];
             if (!definition || !definition.onReveal) {
                 return { board };
             }
-            
-            // Get the actual card on the board (Echo Mage) - this is what will receive stat modifications
+
             const boardCard = board[index];
             if (!boardCard) {
                 return { board };
             }
-            
-            // For abilities that modify the card's stats (like Void Drain), we need to pass the actual board card
-            // For abilities that create copies (like Phantom), we need special handling
+
             let cardToUse = boardCard;
-            
+
             // Special case for Phantom - it needs to create a copy of the last card, not Echo
             if (lastCard.ability.id === 'phantom') {
-                const lastCardClone = {
+                const lastCardClone: Card = {
                     ...lastCard,
-                    id: `${lastCard.id}-echo-${Date.now()}`,
+                    id: `${lastCard.id}-echo-${gameState.seed ?? Date.now()}`,
                     stats: { ...lastCard.stats },
                     baseStats: lastCard.baseStats ? { ...lastCard.baseStats } : undefined,
-                    owner: boardCard.owner, // Use Echo's owner
+                    owner: boardCard.owner,
                 };
                 cardToUse = lastCardClone;
             }
-            
+
             const result = definition.onReveal({
                 board,
                 index,
-                card: cardToUse, // Use board card for stat mods, clone for copy abilities
+                card: cardToUse,
                 gameState
             });
-            
+
             return result;
         },
     },
-    'amplify': { id: 'amplify', name: 'Amplify', trigger: 'ongoing', text: 'Ongoing: Doubles the effect of adjacent allied ongoing abilities.', ongoing: () => [] },
     'borrow': {
         id: 'borrow',
         name: 'Borrow',
         trigger: 'onReveal',
         text: 'On Reveal: Copies the stats of the strongest adjacent card.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
             let strongestNeighbor: Card | null = null;
             let maxTotal = -1;
 
             neighbors.forEach(idx => {
-                const neighbor = board[idx];
+                const neighbor = newBoard[idx];
                 if (neighbor) {
                     const total = neighbor.stats.top + neighbor.stats.right + neighbor.stats.bottom + neighbor.stats.left;
                     if (total > maxTotal) {
@@ -342,31 +323,44 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
 
             if (strongestNeighbor) {
                 const target = strongestNeighbor as Card;
-                card.stats = { ...target.stats };
-                if (card.baseStats) {
-                    card.baseStats = { ...target.stats };
+                const selfCard = newBoard[index];
+                if (selfCard) {
+                    newBoard[index] = {
+                        ...selfCard,
+                        stats: { ...target.stats },
+                        baseStats: selfCard.baseStats ? { ...target.stats } : undefined,
+                    };
                 }
             }
-            return { board };
+            return { board: newBoard };
         },
     },
-    'suppression-field': { id: 'suppression-field', name: 'Suppression', trigger: 'ongoing', text: 'Ongoing: Negates all other abilities on the board.', ongoing: () => [] },
     'gambit': {
         id: 'gambit',
         name: 'Gambit',
         trigger: 'onReveal',
         text: 'On Reveal: 50% chance to gain +1 to all stats, 50% chance to lose -1 to all stats.',
-        onReveal: ({ board, card }) => {
-            const isWin = Math.random() >= 0.5;
+        onReveal: ({ board, index, card, gameState }) => {
+            const newBoard = cloneBoard(board);
+            const seed = gameState?.seed ?? Date.now();
+            const { value: randomVal } = seededRandom(seed);
+            const isWin = randomVal >= 0.5;
             const modifier = isWin ? 1 : -1;
 
-            // Apply to self
-            card.stats.top += modifier;
-            card.stats.right += modifier;
-            card.stats.bottom += modifier;
-            card.stats.left += modifier;
+            const selfCard = newBoard[index];
+            if (selfCard) {
+                newBoard[index] = {
+                    ...selfCard,
+                    stats: {
+                        top: selfCard.stats.top + modifier,
+                        right: selfCard.stats.right + modifier,
+                        bottom: selfCard.stats.bottom + modifier,
+                        left: selfCard.stats.left + modifier,
+                    },
+                };
+            }
 
-            return { board };
+            return { board: newBoard };
         },
     },
     'sacrifice': {
@@ -375,14 +369,14 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Destroy an adjacent ally to gain its stats.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
-            // Find adjacent ally with highest total stats
             let bestAllyIndex: number | null = null;
             let bestAllyCard: Card | null = null;
             let maxTotal = 0;
 
             neighbors.forEach(idx => {
-                const neighbor = board[idx];
+                const neighbor = newBoard[idx];
                 if (neighbor && neighbor.owner === card.owner && neighbor.id !== card.id) {
                     const total = neighbor.stats.top + neighbor.stats.right + neighbor.stats.bottom + neighbor.stats.left;
                     if (total > maxTotal) {
@@ -395,34 +389,37 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
 
             if (bestAllyIndex !== null && bestAllyCard !== null) {
                 const ally: Card = bestAllyCard;
-                // Gain the ally's stats
-                card.stats.top += ally.stats.top;
-                card.stats.right += ally.stats.right;
-                card.stats.bottom += ally.stats.bottom;
-                card.stats.left += ally.stats.left;
-
-                // Destroy the ally
-                board[bestAllyIndex] = null;
+                const selfCard = newBoard[index];
+                if (selfCard) {
+                    newBoard[index] = {
+                        ...selfCard,
+                        stats: {
+                            top: selfCard.stats.top + ally.stats.top,
+                            right: selfCard.stats.right + ally.stats.right,
+                            bottom: selfCard.stats.bottom + ally.stats.bottom,
+                            left: selfCard.stats.left + ally.stats.left,
+                        },
+                    };
+                }
+                newBoard[bestAllyIndex] = null;
             }
 
-            return { board };
+            return { board: newBoard };
         },
     },
-    'last-stand': { id: 'last-stand', name: 'Last Stand', trigger: 'ongoing', text: 'Ongoing: If this is your last card, it gains +5 to all sides.', ongoing: () => [] },
     'volatile': {
         id: 'volatile',
         name: 'Volatile',
         trigger: 'onReveal',
         text: 'On Reveal: Explodes, destroying itself and all adjacent cards.',
         onReveal: ({ board, index }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
-            // Destroy neighbors
             neighbors.forEach(idx => {
-                board[idx] = null;
+                newBoard[idx] = null;
             });
-            // Destroy self
-            board[index] = null;
-            return { board };
+            newBoard[index] = null;
+            return { board: newBoard };
         },
     },
     'timeshift': {
@@ -435,28 +432,23 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
 
             const lastMove = gameState.lastMove;
 
-            // Ensure it was an enemy move
             if (lastMove.player === card.owner) return { board };
 
-            // Check if the card is still on the board at that index
-            // (It might have been moved or destroyed, but usually it's there)
             if (board[lastMove.index]?.id === lastMove.card.id) {
-                // Remove from board
-                board[lastMove.index] = null;
+                const newBoard = cloneBoard(board);
+                newBoard[lastMove.index] = null;
 
-                // Return to hand
                 const targetHandKey = lastMove.player === 'player' ? 'playerHand' : 'opponentHand';
                 const currentHand = gameState[targetHandKey];
 
-                // Add back to hand (ensure unique ID if needed, but keeping same ID is fine)
-                // We might want to reset stats to base? usually "return to hand" resets state.
-                const returnedCard = {
+                const returnedCard: Card = {
                     ...lastMove.card,
-                    stats: { ...lastMove.card.baseStats! } // Reset to base stats
+                    stats: { ...lastMove.card.baseStats! },
+                    baseStats: lastMove.card.baseStats ? { ...lastMove.card.baseStats } : undefined,
                 };
 
                 return {
-                    board,
+                    board: newBoard,
                     gameState: {
                         [targetHandKey]: [...currentHand, returnedCard]
                     }
@@ -466,7 +458,6 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             return { board };
         },
     },
-    'invisible': { id: 'invisible', name: 'Invisible', trigger: 'ongoing', text: 'Ongoing: Cannot be targeted by enemy abilities.', ongoing: () => [] },
     'arcane-insight': {
         id: 'arcane-insight',
         name: 'Arcane Insight',
@@ -488,11 +479,11 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
                 if (sourceCardIndex !== -1) {
                     return [{
                         targetIndex: sourceCardIndex,
-                        modifier: { 
-                            top: abilityCount, 
-                            right: abilityCount, 
-                            bottom: abilityCount, 
-                            left: abilityCount 
+                        modifier: {
+                            top: abilityCount,
+                            right: abilityCount,
+                            bottom: abilityCount,
+                            left: abilityCount
                         }
                     }];
                 }
@@ -500,22 +491,23 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
             return [];
         },
     },
-    'aura': { id: 'aura', name: 'Aura', trigger: 'ongoing', text: 'Ongoing: Adjacent allies gain +1.', ongoing: () => [] },
     'silence': {
         id: 'silence',
         name: 'Silence',
         trigger: 'onReveal',
         text: 'On Reveal: Silences adjacent enemy cards, removing their abilities.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const neighbors = getAdjacentIndices(index);
             neighbors.forEach(idx => {
-                const target = board[idx];
+                const target = newBoard[idx];
                 if (target && target.owner !== card.owner) {
-                    // Remove ability
-                    delete target.ability;
+                    // Create a new card object without the ability property
+                    const { ability: _removed, ...rest } = target;
+                    newBoard[idx] = rest as Card;
                 }
             });
-            return { board };
+            return { board: newBoard };
         },
     },
     'ranger-snipe': {
@@ -524,10 +516,10 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         trigger: 'onReveal',
         text: 'On Reveal: Attacks cards that are 2 slots away in all directions.',
         onReveal: ({ board, index, card }) => {
+            const newBoard = cloneBoard(board);
             const row = Math.floor(index / BOARD_SIZE);
             const col = index % BOARD_SIZE;
 
-            // Directions: Top, Right, Bottom, Left (2 slots away)
             const targets = [
                 { r: -2, c: 0, attackStat: 'top', defendStat: 'bottom' },
                 { r: 0, c: 2, attackStat: 'right', defendStat: 'left' },
@@ -540,7 +532,6 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
                 const targetCol = col + c;
 
                 if (targetRow >= 0 && targetRow < BOARD_SIZE && targetCol >= 0 && targetCol < BOARD_SIZE) {
-                    // Ensure there is no card in the intermediate tile (exactly 1 slot away)
                     const midRow = row + r / 2;
                     const midCol = col + c / 2;
                     if (
@@ -548,24 +539,23 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
                         midRow < BOARD_SIZE &&
                         midCol >= 0 &&
                         midCol < BOARD_SIZE &&
-                        board[midRow * BOARD_SIZE + midCol]
+                        newBoard[midRow * BOARD_SIZE + midCol]
                     ) {
-                        // Line of sight is blocked by an adjacent card; do not hit the distant one.
                         return;
                     }
 
                     const targetIndex = targetRow * BOARD_SIZE + targetCol;
-                    const target = board[targetIndex];
+                    const target = newBoard[targetIndex];
 
                     if (target && target.owner !== card.owner) {
                         if (card.stats[attackStat] > target.stats[defendStat]) {
-                            board[targetIndex] = { ...target, owner: card.owner };
+                            newBoard[targetIndex] = { ...target, owner: card.owner };
                         }
                     }
                 }
             });
 
-            return { board };
+            return { board: newBoard };
         },
     },
     'lich-debuff': {
@@ -614,7 +604,6 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         text: 'On Reveal: The next card you play gains +1 bottom.',
         onReveal: ({ board }) => {
             // TODO: Implement buff for next card - requires GameState.nextCardBuff tracking
-            // For now, this is a placeholder
             return { board };
         },
     },
@@ -645,42 +634,40 @@ export const abilityCatalog: Record<AbilityId, AbilityDefinition> = {
         name: 'Void Drain',
         trigger: 'onReveal',
         text: 'On Reveal: Steals +1 from all stats of all enemy cards on the board.',
-        onReveal: ({ board, card }) => {
+        onReveal: ({ board, index }) => {
+            const newBoard = cloneBoard(board);
             let totalDrained = 0;
 
             // Drain from all enemy cards
-            board.forEach((slot) => {
-                if (slot && slot.owner !== card.owner) {
-                    // Reduce enemy stats by 1 (minimum 0)
-                    if (slot.stats.top > 0) {
-                        slot.stats.top -= 1;
-                        totalDrained++;
-                    }
-                    if (slot.stats.right > 0) {
-                        slot.stats.right -= 1;
-                        totalDrained++;
-                    }
-                    if (slot.stats.bottom > 0) {
-                        slot.stats.bottom -= 1;
-                        totalDrained++;
-                    }
-                    if (slot.stats.left > 0) {
-                        slot.stats.left -= 1;
-                        totalDrained++;
-                    }
+            const selfCard = newBoard[index];
+            if (!selfCard) return { board: newBoard };
+
+            newBoard.forEach((slot, slotIndex) => {
+                if (slot && slot.owner !== selfCard.owner) {
+                    const newStats = { ...slot.stats };
+                    if (newStats.top > 0) { newStats.top -= 1; totalDrained++; }
+                    if (newStats.right > 0) { newStats.right -= 1; totalDrained++; }
+                    if (newStats.bottom > 0) { newStats.bottom -= 1; totalDrained++; }
+                    if (newStats.left > 0) { newStats.left -= 1; totalDrained++; }
+                    newBoard[slotIndex] = { ...slot, stats: newStats };
                 }
             });
 
-            // Add drained stats to Void Tyrant (distribute evenly)
+            // Add drained stats to self (distribute evenly)
             const perStat = Math.floor(totalDrained / 4);
             const remainder = totalDrained % 4;
 
-            card.stats.top += perStat + (remainder > 0 ? 1 : 0);
-            card.stats.right += perStat + (remainder > 1 ? 1 : 0);
-            card.stats.bottom += perStat + (remainder > 2 ? 1 : 0);
-            card.stats.left += perStat;
+            newBoard[index] = {
+                ...selfCard,
+                stats: {
+                    top: selfCard.stats.top + perStat + (remainder > 0 ? 1 : 0),
+                    right: selfCard.stats.right + perStat + (remainder > 1 ? 1 : 0),
+                    bottom: selfCard.stats.bottom + perStat + (remainder > 2 ? 1 : 0),
+                    left: selfCard.stats.left + perStat,
+                },
+            };
 
-            return { board };
+            return { board: newBoard };
         },
     },
 };
@@ -767,10 +754,10 @@ export const calculatePreviewModifiers = (board: Board, card: Card, targetIndex:
     // Create a temporary board with the card placed at targetIndex
     const tempBoard = [...board];
     tempBoard[targetIndex] = card;
-    
+
     // Calculate modifiers for this temporary board
     const modifiers = collectAllModifiers(tempBoard, mapId);
-    
+
     // Return the modifiers that would apply to the card at targetIndex
     return modifiers[targetIndex] || {};
 };
@@ -790,9 +777,8 @@ export const calculateResolvedStats = (
         stats: { ...card.stats },
         baseStats: card.baseStats ? { ...card.baseStats } : undefined
     };
-    
+
     // Step 1: Create deep copy of board to avoid mutating original cards
-    // This is critical because On Reveal abilities (like Void Drain) mutate card stats
     const tempBoard: Board = board.map((slot) => {
         if (!slot) return null;
         return {
@@ -802,7 +788,7 @@ export const calculateResolvedStats = (
         };
     });
     tempBoard[targetIndex] = cardClone;
-    
+
     // Step 2: Apply On Reveal ability if it exists
     if (cardClone.ability && cardClone.ability.trigger === 'onReveal') {
         const definition = abilityCatalog[cardClone.ability.id];
@@ -810,7 +796,6 @@ export const calculateResolvedStats = (
             // Special handling for random abilities (Gambit)
             if (cardClone.ability.id === 'gambit') {
                 // For preview, show average (no change) since it's random
-                // Could also show +1 or -1, but average is most neutral
             } else {
                 // Apply the On Reveal ability
                 const result = definition.onReveal({
@@ -819,7 +804,7 @@ export const calculateResolvedStats = (
                     card: cardClone,
                     gameState: gameState as GameState
                 });
-                
+
                 // Update tempBoard if it was modified
                 if (result.board) {
                     // Copy back the modified card stats
@@ -831,11 +816,11 @@ export const calculateResolvedStats = (
             }
         }
     }
-    
+
     // Step 3: Calculate ongoing modifiers on top of the resolved stats
     const modifiers = collectAllModifiers(tempBoard, mapId);
     const ongoingMods = modifiers[targetIndex] || {};
-    
+
     // Step 4: Return final resolved stats
     return {
         top: cardClone.stats.top + (ongoingMods.top || 0),
@@ -873,12 +858,6 @@ export const getModifierBreakdown = (board: Board, targetIndex: number): Array<{
             });
         }
     });
-
-    // 2. Check Map Effects (if we had access to mapId here easily, or we can infer from board state if needed)
-    // For now, map effects are usually global or tile-based. 
-    // We can't easily get the map name here without passing mapId.
-    // The caller of this function usually has the mapId.
-    // Let's rely on the caller to handle map breakdown or update this signature later.
 
     return breakdowns;
 };
