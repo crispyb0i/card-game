@@ -258,7 +258,7 @@ export const Card: React.FC<CardProps> = ({
 
                 {envEffect && (
                     <div
-                        className={`absolute -top-2 -right-11 w-7 h-7 rounded-full bg-black/80 border flex items-center justify-center text-sm shadow-lg z-20 cursor-help ${envEffect.kind === 'debuff'
+                        className={`absolute -top-1 -right-7 sm:-top-2 sm:-right-11 w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-black/80 border flex items-center justify-center text-[10px] sm:text-sm shadow-lg z-20 cursor-help ${envEffect.kind === 'debuff'
                             ? 'border-red-400 text-red-300'
                             : 'border-emerald-400 text-emerald-300'
                             }`}
