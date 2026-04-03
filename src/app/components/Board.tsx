@@ -207,7 +207,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
                         )}
                         {isHovered && (
                             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                                <div className="w-24 h-32 border-2 border-dashed border-blue-400 rounded-sm bg-blue-500/10 animate-pulse" />
+                                <div className="w-12 h-16 sm:w-18 sm:h-24 md:w-24 md:h-32 border border-dashed sm:border-2 border-blue-400 rounded-sm bg-blue-500/10 animate-pulse" />
                             </div>
                         )}
                     </div>
