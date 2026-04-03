@@ -118,11 +118,11 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
             } catch (e) {
                 console.error("Failed to load deck", e);
                 // Fall through to default deck
-                return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
+                return mapCharacterIdsToDeck(DEFAULT_STARTER_IDS, ownedCards);
             }
         } else {
-            // No saved deck - use default deck
-            return mapCharacterIdsToDeck(DEFAULT_DECK_CHARACTER_IDS, ownedCards);
+            // No saved deck - use default starter deck
+            return mapCharacterIdsToDeck(DEFAULT_STARTER_IDS, ownedCards);
         }
     });
     const [filter, setFilter] = useState<Rarity | 'all'>('all');
