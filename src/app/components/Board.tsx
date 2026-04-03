@@ -18,7 +18,78 @@ interface BoardProps {
     lastMove?: GameState['lastMove'];
 }
 
-export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, onDragLeave, previewCaptures, hoveredSlot, onCardClick, mapId }) => {
+export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, onDragLeave, previewCaptures, hoveredSlot, onCardClick, mapId, lastMove }) => {
+    // Track ability trigger animations
+    const [abilityTriggerIndex, setAbilityTriggerIndex] = React.useState<number | null>(null);
+    const [abilityName, setAbilityName] = React.useState<string | null>(null);
+    const [affectedIndices, setAffectedIndices] = React.useState<number[]>([]);
+    const [placedIndex, setPlacedIndex] = React.useState<number | null>(null);
+    const prevLastMoveRef = React.useRef<GameState['lastMove']>(undefined);
+
+    React.useEffect(() => {
+        // Detect a new card placement
+        if (lastMove && lastMove !== prevLastMoveRef.current) {
+            const isNewMove = !prevLastMoveRef.current ||
+                prevLastMoveRef.current.card.id !== lastMove.card.id ||
+                prevLastMoveRef.current.index !== lastMove.index;
+
+            if (isNewMove) {
+                // Placement slam animation
+                setPlacedIndex(lastMove.index);
+                const placedTimer = setTimeout(() => setPlacedIndex(null), 250);
+
+                // Check if the placed card has an ability
+                const placedCard = lastMove.card;
+                if (placedCard.ability) {
+                    setAbilityTriggerIndex(lastMove.index);
+                    setAbilityName(placedCard.ability.name);
+
+                    // Determine affected cards based on ability type
+                    const affected: number[] = [];
+                    board.forEach((slot, idx) => {
+                        if (!slot || idx === lastMove.index) return;
+                        // Cards whose owner changed to the placer's side (captured by ability)
+                        // or cards that were modified/affected
+                        if (slot.owner === placedCard.owner && idx !== lastMove.index) {
+                            // For onReveal abilities, highlight nearby cards that could be affected
+                            if (placedCard.ability?.trigger === 'onReveal') {
+                                const row1 = Math.floor(lastMove.index / 3);
+                                const col1 = lastMove.index % 3;
+                                const row2 = Math.floor(idx / 3);
+                                const col2 = idx % 3;
+                                const dist = Math.abs(row1 - row2) + Math.abs(col1 - col2);
+                                // Highlight adjacent allies for rally-type or nearby for others
+                                if (dist <= 2) {
+                                    affected.push(idx);
+                                }
+                            }
+                        }
+                        // For abilities that target enemies
+                        if (slot.owner !== placedCard.owner && placedCard.ability?.trigger === 'onReveal') {
+                            affected.push(idx);
+                        }
+                    });
+                    setAffectedIndices(affected);
+
+                    const abilityTimer = setTimeout(() => {
+                        setAbilityTriggerIndex(null);
+                        setAbilityName(null);
+                        setAffectedIndices([]);
+                    }, 1200);
+
+                    prevLastMoveRef.current = lastMove;
+                    return () => {
+                        clearTimeout(placedTimer);
+                        clearTimeout(abilityTimer);
+                    };
+                }
+
+                prevLastMoveRef.current = lastMove;
+                return () => clearTimeout(placedTimer);
+            }
+        }
+    }, [lastMove, board]);
+
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault(); // Allow drop
         onHoverSlot(index);
