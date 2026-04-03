@@ -174,20 +174,41 @@ export const Card: React.FC<CardProps> = ({
 
     const renderTooltip = (content: React.ReactNode, isBottom = false, centerHorizontal = false) => {
         if (!tooltipPosition || typeof window === 'undefined') return null;
-        
+
+        const tooltipWidth = 256; // w-64 = 16rem = 256px
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        // Determine horizontal position — prefer right side, fall back to left if off-screen
+        let left: number;
+        if (centerHorizontal) {
+            left = Math.max(8, Math.min(tooltipPosition.left - tooltipWidth / 2, viewportWidth - tooltipWidth - 8));
+        } else if (tooltipPosition.left + tooltipWidth > viewportWidth - 8) {
+            // Would overflow right — show on left side of card instead
+            const cardRect = cardRef.current?.getBoundingClientRect();
+            left = cardRect ? Math.max(8, cardRect.left - tooltipWidth - 8) : 8;
+        } else {
+            left = tooltipPosition.left;
+        }
+
+        // Clamp vertical position
+        let top = tooltipPosition.top;
+        if (top + 200 > viewportHeight) {
+            top = Math.max(8, viewportHeight - 220);
+        }
+
         const style: React.CSSProperties = {
             position: 'fixed',
-            top: isBottom ? 'auto' : `${tooltipPosition.top}px`,
-            bottom: isBottom ? `${window.innerHeight - tooltipPosition.top}px` : 'auto',
-            left: centerHorizontal ? `${tooltipPosition.left}px` : `${tooltipPosition.left}px`,
-            transform: centerHorizontal ? 'translateX(-50%)' : 'none',
+            top: isBottom ? 'auto' : `${top}px`,
+            bottom: isBottom ? `${viewportHeight - tooltipPosition.top}px` : 'auto',
+            left: `${left}px`,
             marginBottom: centerHorizontal ? '8px' : '0',
             zIndex: 999999,
         };
 
         return createPortal(
-            <div 
-                className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-4 shadow-2xl backdrop-blur pointer-events-none"
+            <div
+                className="w-64 bg-slate-900/95 border border-slate-600 rounded-lg p-3 sm:p-4 shadow-2xl backdrop-blur pointer-events-none"
                 style={style}
             >
                 {content}
