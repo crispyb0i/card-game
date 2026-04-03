@@ -217,7 +217,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'wizard',
         name: 'High Wizard',
-        stats: { top: 3, right: 5, bottom: 2, left: 6 }, // Sum 20
+        stats: { top: 3, right: 5, bottom: 2, left: 5 }, // Sum 20
         imageUrl: '/assets/wizard.png',
         description: 'Master of arcane arts, weak in melee.',
         rarity: 'epic',
@@ -225,7 +225,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'golem',
         name: 'Iron Golem',
-        stats: { top: 6, right: 2, bottom: 6, left: 2 }, // Sum 18
+        stats: { top: 2, right: 6, bottom: 7, left: 1 }, // Sum 18
         imageUrl: '/assets/golem.png',
         description: 'An unstoppable construct.',
         rarity: 'epic',
@@ -233,7 +233,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'assassin',
         name: 'Shadow Assassin',
-        stats: { top: 7, right: 2, bottom: 2, left: 4 },
+        stats: { top: 6, right: 2, bottom: 2, left: 4 },
         imageUrl: '/assets/assassin.png',
         description: 'Strikes first, asks questions later.',
         rarity: 'epic',
@@ -327,7 +327,7 @@ export const CHARACTERS: Character[] = [
     {
         id: 'lich',
         name: 'Lich King',
-        stats: { top: 4, right: 3, bottom: 8, left: 7 },
+        stats: { top: 4, right: 3, bottom: 6, left: 7 },
         imageUrl: '/assets/lich.png',
         description: 'The master of the undead.',
         rarity: 'legendary',
