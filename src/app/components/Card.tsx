@@ -326,6 +326,15 @@ export const Card: React.FC<CardProps> = ({
                 true,
                 true
             )}
+
+            {/* Capture burst ring */}
+            {isCaptured && (
+                <div
+                    className={`absolute inset-0 rounded-lg border-2 pointer-events-none animate-capture-burst ${
+                        isPlayer ? 'border-blue-400' : 'border-red-400'
+                    }`}
+                />
+            )}
         </div>
     );
 };
