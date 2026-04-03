@@ -120,15 +120,15 @@ export const Game: React.FC = () => {
                 ← MENU
             </button>
 
-            <h1 className="text-4xl font-bold mb-8 tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 drop-shadow-md">
+            <h1 className="text-xl sm:text-2xl md:text-4xl font-bold mb-2 sm:mb-4 md:mb-8 tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-amber-200 to-amber-600 drop-shadow-md">
                 MYTHIC TRIAD
             </h1>
 
-            <div className="flex flex-col md:flex-row gap-12 items-center">
+            <div className="flex flex-row gap-2 sm:gap-6 md:gap-12 items-center px-1">
                 {/* Player Hand (left side) */}
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-amber-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Player</h2>
-                    <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-amber-400 font-bold text-center mb-1 uppercase tracking-widest text-[8px] sm:text-[10px] md:text-xs font-sans">Player</h2>
+                    <div className="flex flex-col gap-1 sm:gap-2 md:gap-3">
                         {gameState.playerHand.map((card) => {
                             // Calculate resolved stats if this card is being dragged and hovering over a slot
                             // This includes On Reveal ability resolution + ongoing modifiers
