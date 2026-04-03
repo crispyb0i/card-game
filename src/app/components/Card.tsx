@@ -223,7 +223,7 @@ export const Card: React.FC<CardProps> = ({
             >
                 {/* Stats Overlay */}
                 <div
-                    className={`absolute -top-3 -left-3 flex flex-col items-center justify-center font-serif font-black text-[11px] leading-tight bg-black/80 rounded-md px-1.5 py-1 backdrop-blur-sm border border-white/30 shadow-lg z-20 cursor-help ${previewModifiers ? 'ring-2 ring-cyan-400 ring-opacity-70' : ''}`}
+                    className={`absolute -top-2 -left-2 sm:-top-3 sm:-left-3 flex flex-col items-center justify-center font-serif font-black text-[8px] sm:text-[10px] md:text-[11px] leading-tight bg-black/80 rounded-sm sm:rounded-md px-1 py-0.5 sm:px-1.5 sm:py-1 backdrop-blur-sm border border-white/30 shadow-lg z-20 cursor-help ${previewModifiers ? 'ring-2 ring-cyan-400 ring-opacity-70' : ''}`}
                     onMouseEnter={() => setShowStatsTooltip(true)}
                     onMouseLeave={() => setShowStatsTooltip(false)}
                 >
