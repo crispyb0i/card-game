@@ -35,18 +35,13 @@ const RARITY_LIMITS: Partial<Record<Rarity, number>> = {
     rare: 3,
 };
 
-// Default deck for first-time players
-const DEFAULT_DECK_CHARACTER_IDS: string[] = [
-    'dragon',        // Legendary
-    'wizard',        // Epic
-    'golem',         // Epic
-    'knight',        // Rare
-    'ranger',        // Rare
-    'battle-priest', // Rare
+// Default starter deck: 5 common cards only. Players must buy the rest from the shop.
+const DEFAULT_STARTER_IDS: string[] = [
     'squire',        // Common
     'shield-bearer', // Common
     'sky-scout',     // Common
     'river-wisp',    // Common
+    'slime',         // Common
 ];
 
 interface InventoryProps {
