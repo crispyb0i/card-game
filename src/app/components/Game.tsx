@@ -9,6 +9,7 @@ import { MainMenu } from './MainMenu';
 import { Inventory } from './Inventory';
 import { HowToPlay } from './HowToPlay';
 import CoinFlip from './CoinFlip';
+import { VolumeControl } from './VolumeControl';
 import { CHARACTERS } from '../../lib/cards';
 import { calculateResolvedStats } from '../../lib/abilities';
 
