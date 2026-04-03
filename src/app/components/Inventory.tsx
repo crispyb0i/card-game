@@ -127,6 +127,7 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
     });
     const [filter, setFilter] = useState<Rarity | 'all'>('all');
     const [previewCard, setPreviewCard] = useState<CardType | null>(null);
+    const [showDeckPanel, setShowDeckPanel] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
