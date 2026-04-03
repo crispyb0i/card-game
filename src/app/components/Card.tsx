@@ -61,6 +61,7 @@ export const Card: React.FC<CardProps> = ({
 
     const isPlayer = card.owner === 'player';
     const [isFlipping, setIsFlipping] = React.useState(false);
+    const [isCaptured, setIsCaptured] = React.useState(false);
     const [showAbilityTooltip, setShowAbilityTooltip] = React.useState(false);
     const [showStatsTooltip, setShowStatsTooltip] = React.useState(false);
     const [showEnvTooltip, setShowEnvTooltip] = React.useState(false);
