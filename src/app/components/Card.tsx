@@ -251,7 +251,7 @@ export const Card: React.FC<CardProps> = ({
 
                 {card.ability && abilityMeta && (
                     <div
-                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-black/80 border border-white/30 text-amber-200 flex items-center justify-center text-lg shadow-lg z-20 cursor-help"
+                        className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 rounded-full bg-black/80 border border-white/30 text-amber-200 flex items-center justify-center text-[10px] sm:text-sm md:text-lg shadow-lg z-20 cursor-help"
                         onMouseEnter={() => setShowAbilityTooltip(true)}
                         onMouseLeave={() => setShowAbilityTooltip(false)}
                         aria-label={`${card.ability.name} (${abilityMeta.label})`}
