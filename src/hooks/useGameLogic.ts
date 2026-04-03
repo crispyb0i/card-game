@@ -66,18 +66,22 @@ const buildInitialGameState = (
     startingPlayer: Player = 'player',
     playerDeckIds?: string[],
 ): GameState => {
-    const fullPlayerDeck = createDeck('player', 10, playerDeckIds);
-    const fullOpponentDeck = createDeck('opponent', 10);
+    // Deck size matches the number of owned cards (max 10)
+    const deckSize = playerDeckIds ? Math.min(playerDeckIds.length, 10) : 10;
+    const handSize = Math.min(5, deckSize);
+
+    const fullPlayerDeck = createDeck('player', deckSize, playerDeckIds);
+    const fullOpponentDeck = createDeck('opponent', deckSize);
 
     const shuffledPlayerDeck = shuffle(fullPlayerDeck);
     const shuffledOpponentDeck = shuffle(fullOpponentDeck);
 
     return {
         board: INITIAL_BOARD,
-        playerHand: shuffledPlayerDeck.slice(0, 5),
-        playerDeck: shuffledPlayerDeck.slice(5),
-        opponentHand: shuffledOpponentDeck.slice(0, 5),
-        opponentDeck: shuffledOpponentDeck.slice(5),
+        playerHand: shuffledPlayerDeck.slice(0, handSize),
+        playerDeck: shuffledPlayerDeck.slice(handSize),
+        opponentHand: shuffledOpponentDeck.slice(0, handSize),
+        opponentDeck: shuffledOpponentDeck.slice(handSize),
         currentPlayer: startingPlayer,
         startingPlayer,
         winner: null,
