@@ -62,17 +62,17 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
             setOpenedCards(newCards);
             setIsOpening(false);
 
-            // Add to Inventory (Mock)
-            // In real app, we'd merge with existing inventory
-            // For now, we assume Inventory component reloads from source of truth, 
-            // but we haven't implemented a persistent "Owned Cards" list in localStorage yet.
-            // Let's do that now.
-            // TODO: Implement inventory persistence
-            // const savedInv = localStorage.getItem('inventory');
-            // const currentInv = savedInv ? JSON.parse(savedInv) : [];
-            // We need to store just IDs or full objects? 
-            // Inventory.tsx currently mocks "Give user all characters".
-            // We should update Inventory to read from this storage if it exists.
+            // Persist purchased cards to inventory (store character IDs)
+            const savedInv = localStorage.getItem('ownedCards');
+            const currentInv: string[] = savedInv ? JSON.parse(savedInv) : getDefaultStarterIds();
+            const newCharacterIds = newCards.map(c => c.characterId || c.id);
+            // Add new cards (allow duplicates for now - collection tracks what you own)
+            newCharacterIds.forEach(id => {
+                if (!currentInv.includes(id)) {
+                    currentInv.push(id);
+                }
+            });
+            localStorage.setItem('ownedCards', JSON.stringify(currentInv));
         }, 1500);
     };
 
