@@ -209,7 +209,7 @@ export const Card: React.FC<CardProps> = ({
                 onDragEnd={handleDragEnd}
                 onClick={onClick ? () => onClick(card) : undefined}
                 className={`
-        relative w-28 h-36 rounded-lg flex flex-col items-center p-1 select-none
+        relative w-14 h-[72px] sm:w-20 sm:h-[104px] md:w-28 md:h-36 rounded-md md:rounded-lg flex flex-col items-center p-0.5 sm:p-1 select-none
         transition-all duration-500 transform-style-3d
         ${bgColor} ${className} ${rarityStyle} ${abilityGlow}
         ${isDraggable ? 'cursor-grab active:cursor-grabbing hover:scale-110 hover:z-20' : 'cursor-pointer'}
