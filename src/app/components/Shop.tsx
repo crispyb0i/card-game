@@ -5,6 +5,13 @@ import { Card as CardType } from '../../lib/types';
 import { CHARACTERS } from '../../lib/cards';
 import { Card } from './Card';
 
+// Default starter deck: 5 common cards
+const DEFAULT_STARTER_IDS = ['squire', 'shield-bearer', 'sky-scout', 'river-wisp', 'slime'];
+
+function getDefaultStarterIds(): string[] {
+    return [...DEFAULT_STARTER_IDS];
+}
+
 interface ShopProps {
     onBack: () => void;
 }
