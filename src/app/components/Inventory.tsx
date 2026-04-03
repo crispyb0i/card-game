@@ -329,12 +329,10 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                     return (
                                         <div
                                             key={`mob-slot-${index}-${card.id}`}
-                                            className={`relative aspect-[3/4] flex items-center justify-center cursor-pointer border-2 ${borderColor} rounded-md`}
+                                            className={`relative cursor-pointer border-2 ${borderColor} rounded-md overflow-hidden`}
                                             onClick={() => toggleCard(card.id)}
                                         >
-                                            <div className="transform scale-[0.8] origin-center">
-                                                <Card card={card} />
-                                            </div>
+                                            <Card card={card} className="!w-full !h-auto" />
                                         </div>
                                     );
                                 } else {
