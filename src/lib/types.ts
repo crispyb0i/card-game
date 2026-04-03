@@ -32,10 +32,10 @@ export interface CardStats {
 export type AbilityId =
     | 'guardian-aura' | 'necrotic-chill' | 'bull-charge'
     | 'rally' | 'assassin' | 'crusader' | 'sniper'
-    | 'swap' | 'pull' | 'anchor' | 'phantom'
-    | 'echo' | 'amplify' | 'borrow' | 'suppression-field'
-    | 'gambit' | 'sacrifice' | 'last-stand' | 'volatile'
-    | 'timeshift' | 'invisible' | 'arcane-insight' | 'aura'
+    | 'swap' | 'phantom'
+    | 'echo' | 'borrow'
+    | 'gambit' | 'sacrifice' | 'volatile'
+    | 'timeshift' | 'arcane-insight'
     | 'silence' | 'ranger-snipe' | 'lich-debuff' | 'knight-rally'
     | 'cleric-blessing' | 'dragon-fire' | 'void-drain';
 
