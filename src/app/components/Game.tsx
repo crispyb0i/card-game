@@ -242,17 +242,17 @@ export const Game: React.FC = () => {
                         )}
                     </div>
 
-                    <div className="text-slate-400 text-sm font-sans font-bold tracking-wider">
-                        TURN: <span className={gameState.currentPlayer === 'player' ? 'text-amber-400' : 'text-red-400'}>
-                            {gameState.currentPlayer === 'player' ? 'YOUR TURN' : 'OPPONENT TURN'}
+                    <div className="text-slate-400 text-[8px] sm:text-xs md:text-sm font-sans font-bold tracking-wider">
+                        <span className={gameState.currentPlayer === 'player' ? 'text-amber-400' : 'text-red-400'}>
+                            {gameState.currentPlayer === 'player' ? 'YOUR TURN' : 'OPPONENT'}
                         </span>
                     </div>
                 </div>
 
                 {/* Opponent Hand (right side) */}
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-red-400 font-bold text-center mb-2 uppercase tracking-widest text-xs font-sans">Opponent</h2>
-                    <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-red-400 font-bold text-center mb-1 uppercase tracking-widest text-[8px] sm:text-[10px] md:text-xs font-sans">Opponent</h2>
+                    <div className="flex flex-col gap-1 sm:gap-2 md:gap-3">
                         {gameState.opponentHand.map((card) => (
                             <Card
                                 key={card.id}
