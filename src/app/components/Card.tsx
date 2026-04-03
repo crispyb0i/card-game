@@ -83,9 +83,14 @@ export const Card: React.FC<CardProps> = ({
     React.useEffect(() => {
         if (prevOwnerRef.current !== card.owner) {
             setIsFlipping(true);
-            const timer = setTimeout(() => setIsFlipping(false), 600);
+            setIsCaptured(true);
+            const flipTimer = setTimeout(() => setIsFlipping(false), 500);
+            const burstTimer = setTimeout(() => setIsCaptured(false), 500);
             prevOwnerRef.current = card.owner;
-            return () => clearTimeout(timer);
+            return () => {
+                clearTimeout(flipTimer);
+                clearTimeout(burstTimer);
+            };
         }
     }, [card.owner]);
 
