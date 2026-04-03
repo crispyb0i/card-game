@@ -128,7 +128,9 @@ export const generateRandomStats = (seed?: number): { top: number; right: number
     return { top, right, bottom, left, nextSeed: s };
 };
 
-export const createDeck = (owner: Player, count: number = 5, characterIds?: string[]): Card[] => {
+export const createDeck = (owner: Player, count: number = 5, characterIds?: string[], seed?: number): Card[] => {
+    let s = seed ?? Date.now();
+
     if (characterIds && characterIds.length > 0) {
         // Player deck - use provided character IDs
         return Array.from({ length: count }).map((_, i) => {
@@ -138,9 +140,11 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
                 char = CHARACTERS.find(c => c.id === characterIds[i]);
             }
 
-            // Fallback to random if not found
+            // Fallback to seeded random if not found
             if (!char) {
-                char = CHARACTERS[Math.floor(Math.random() * CHARACTERS.length)];
+                const r = seededRandomInt(s, CHARACTERS.length);
+                s = r.nextSeed;
+                char = CHARACTERS[r.value];
             }
 
             return {
@@ -151,7 +155,7 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
                 baseStats: { ...char.stats },
                 owner,
                 rarity: char.rarity,
-                variant: 'base',
+                variant: 'base' as const,
                 characterId: char.id,
                 ability: char.ability,
             };
@@ -168,13 +172,15 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
         const deck: Card[] = [];
         const usedCharacterIds = new Set<string>();
 
-        // Helper to get random character of specific rarity
+        // Helper to get random character of specific rarity (uses seeded PRNG)
         const getRandomCharOfRarity = (rarity: Rarity): Character | null => {
             const available = CHARACTERS.filter(
                 c => c.rarity === rarity && !usedCharacterIds.has(c.id)
             );
             if (available.length === 0) return null;
-            return available[Math.floor(Math.random() * available.length)];
+            const r = seededRandomInt(s, available.length);
+            s = r.nextSeed;
+            return available[r.value];
         };
 
         // Build deck following rarity limits
@@ -191,7 +197,7 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
                         baseStats: { ...char.stats },
                         owner,
                         rarity: char.rarity,
-                        variant: 'base',
+                        variant: 'base' as const,
                         characterId: char.id,
                         ability: char.ability,
                     });
@@ -210,7 +216,7 @@ export const createDeck = (owner: Player, count: number = 5, characterIds?: stri
                 baseStats: { ...char.stats },
                 owner,
                 rarity: char.rarity,
-                variant: 'base',
+                variant: 'base' as const,
                 characterId: char.id,
                 ability: char.ability,
             });
