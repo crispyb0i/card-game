@@ -13,9 +13,9 @@ export const Shop: React.FC<ShopProps> = ({ onBack }) => {
     const [credits, setCredits] = useState(() => {
         if (typeof window !== 'undefined') {
             const savedCredits = localStorage.getItem('credits');
-            return savedCredits ? parseInt(savedCredits) : 1000; // Start with 1000 credits
+            return savedCredits ? parseInt(savedCredits) : 500; // Start with 500 credits
         }
-        return 1000;
+        return 500;
     });
     const [openedCards, setOpenedCards] = useState<CardType[] | null>(null);
     const [isOpening, setIsOpening] = useState(false);
