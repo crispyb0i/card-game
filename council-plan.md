@@ -39,8 +39,8 @@
 
 ### Week 2: State Machine & Animations
 - [ ] Frontend extracts useGameLogic into reducer/state machine with transition events
-- [ ] UI/UX adds capture flip animation (CSS-only, 0.4s rotateY)
-- [ ] UI/UX adds ability trigger visual feedback (icon flash + stat pulse)
+- [x] UI/UX adds capture flip animation (CSS-only, 0.4s rotateY)
+- [x] UI/UX adds ability trigger visual feedback (icon flash + stat pulse)
 - [ ] Research validates positioning with alpha player feedback
 - [ ] Business sets up KPI dashboard (DAU, session length, shop conversion)
 - [ ] Frontend adds error boundaries at route and game-board levels
