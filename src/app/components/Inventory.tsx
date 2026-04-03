@@ -232,13 +232,13 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                 </header>
 
                 {/* Grid */}
-                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 pb-20">
+                <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 pb-20 justify-items-center">
                     {filteredCards.map((card) => {
                         const isSelected = selectedDeck.includes(card.id);
                         return (
                             <div
                                 key={card.id}
-                                className="relative cursor-pointer transition-transform duration-200"
+                                className="relative cursor-pointer transition-transform duration-200 flex justify-center"
                             >
                                 <div onClick={() => toggleCard(card.id)} className="relative inline-block">
                                     <Card
