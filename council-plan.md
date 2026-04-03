@@ -38,7 +38,7 @@
 - [ ] Day 5: Marketing creates gameplay GIFs and seeds first community post (r/TripleTriad)
 
 ### Week 2: State Machine & Animations
-- [ ] Frontend extracts useGameLogic into reducer/state machine with transition events
+- [x] Frontend extracts useGameLogic into reducer/state machine with transition events
 - [x] UI/UX adds capture flip animation (CSS-only, 0.4s rotateY)
 - [x] UI/UX adds ability trigger visual feedback (icon flash + stat pulse)
 - [ ] Research validates positioning with alpha player feedback
