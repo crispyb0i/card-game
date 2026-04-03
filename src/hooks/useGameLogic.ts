@@ -1,14 +1,28 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { Board, Card, GameState, Player, AIDifficulty, BOARD_SIZE } from '../lib/types';
+import { useReducer, useCallback, useEffect, useRef } from 'react';
+import {
+    Board,
+    Card,
+    GameState,
+    Player,
+    AIDifficulty,
+    BOARD_SIZE,
+    GameAction,
+    FullGameState,
+    SideEffect,
+} from '../lib/types';
 import { calculateCapture, checkWinCondition, createDeck } from '../lib/gameEngine';
 import { applyOnRevealAbility } from '../lib/abilities';
 import { useSound } from './useSound';
 
+// ---------------------------------------------------------------------------
+// Helpers (pure, no side-effects)
+// ---------------------------------------------------------------------------
+
 const INITIAL_BOARD: Board = Array(BOARD_SIZE * BOARD_SIZE).fill(null);
 
-// Fisher-Yates Shuffle
+/** Fisher-Yates Shuffle */
 const shuffle = <T>(array: T[]): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -18,144 +32,102 @@ const shuffle = <T>(array: T[]): T[] => {
     return newArray;
 };
 
-export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
-    const [gameState, setGameState] = useState<GameState>(() => {
-        // Lazy init to access localStorage
-        let playerDeckIds: string[] | undefined;
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('playerDeck');
-            if (saved) {
-                try {
-                    playerDeckIds = JSON.parse(saved);
-                } catch (e) {
-                    console.error("Failed to parse deck", e);
-                }
-            }
-        }
+/** Deep-clone a board to avoid mutations leaking across states. */
+const cloneBoard = (board: Board): Board =>
+    board.map((slot) =>
+        slot
+            ? {
+                  ...slot,
+                  stats: { ...slot.stats },
+                  baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
+              }
+            : null,
+    );
 
-        // Create full decks (10 cards for player if saved, otherwise default)
-        const fullPlayerDeck = createDeck('player', 10, playerDeckIds);
-        const fullOpponentDeck = createDeck('opponent', 10);
+/** Draw a card from the given player's deck into their hand. Pure helper. */
+const drawCard = (state: GameState, player: 'player' | 'opponent'): Partial<GameState> => {
+    if (player === 'player') {
+        if (state.playerDeck.length === 0) return {};
+        const newDeck = [...state.playerDeck];
+        const card = newDeck.shift();
+        if (!card) return {};
+        return { playerDeck: newDeck, playerHand: [...state.playerHand, card] };
+    } else {
+        if (state.opponentDeck.length === 0) return {};
+        const newDeck = [...state.opponentDeck];
+        const card = newDeck.shift();
+        if (!card) return {};
+        return { opponentDeck: newDeck, opponentHand: [...state.opponentHand, card] };
+    }
+};
 
-        // Shuffle Decks
-        const shuffledPlayerDeck = shuffle(fullPlayerDeck);
-        const shuffledOpponentDeck = shuffle(fullOpponentDeck);
+/** Build a fresh GameState for a new game. */
+const buildInitialGameState = (
+    startingPlayer: Player = 'player',
+    playerDeckIds?: string[],
+): GameState => {
+    const fullPlayerDeck = createDeck('player', 10, playerDeckIds);
+    const fullOpponentDeck = createDeck('opponent', 10);
 
-        // Deal 5 to hand, rest to deck
-        const playerHand = shuffledPlayerDeck.slice(0, 5);
-        const playerDeck = shuffledPlayerDeck.slice(5);
+    const shuffledPlayerDeck = shuffle(fullPlayerDeck);
+    const shuffledOpponentDeck = shuffle(fullOpponentDeck);
 
-        const opponentHand = shuffledOpponentDeck.slice(0, 5);
-        const opponentDeck = shuffledOpponentDeck.slice(5);
-
-        return {
-            board: INITIAL_BOARD,
-            playerHand,
-            playerDeck,
-            opponentHand,
-            opponentDeck,
-            currentPlayer: 'player',
-            startingPlayer: 'player',
-            winner: null,
-        };
-    });
-
-    const [previewCaptures, setPreviewCaptures] = useState<number[]>([]);
-
-    // Sound effects
-    const { play: playCardPlace } = useSound('/sounds/card-place.mp3', 0.8);
-    const { play: playCardCapture } = useSound('/sounds/card-capture.mp3', 0.85);
-    const { play: playWin } = useSound('/sounds/win-fanfare.mp3', 0.9);
-    const { play: playLose } = useSound('/sounds/lose-sting.mp3', 0.9);
-
-    // Helper to check win condition and update state
-    const checkAndSetWinner = useCallback((currentBoard: Board, startingPlayer: Player) => {
-        const winner = checkWinCondition(currentBoard, startingPlayer);
-        if (winner) {
-            // Play win/lose jingle
-            if (winner === 'player') {
-                playWin();
-            } else if (winner === 'opponent') {
-                playLose();
-            }
-
-            // Award Credits
-            if (typeof window !== 'undefined') {
-                const currentCredits = parseInt(localStorage.getItem('credits') || '500');
-                let award = winner === 'player' ? 30 : 5;
-
-                // First win of the day bonus
-                if (winner === 'player') {
-                    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-                    const lastBonusDate = localStorage.getItem('lastDailyBonusDate');
-                    if (lastBonusDate !== today) {
-                        award += 100; // 100 bonus credits for first win of the day
-                        localStorage.setItem('lastDailyBonusDate', today);
-                    }
-                }
-
-                localStorage.setItem('credits', (currentCredits + award).toString());
-            }
-            return winner;
-        }
-        return null;
-    }, [playWin, playLose]);
-
-    const drawCard = (state: GameState, player: 'player' | 'opponent'): Partial<GameState> => {
-        if (player === 'player') {
-            if (state.playerDeck.length === 0) return {};
-            const newDeck = [...state.playerDeck];
-            const card = newDeck.shift(); // Draw from top
-            if (!card) return {};
-            return {
-                playerDeck: newDeck,
-                playerHand: [...state.playerHand, card]
-            };
-        } else {
-            if (state.opponentDeck.length === 0) return {};
-            const newDeck = [...state.opponentDeck];
-            const card = newDeck.shift();
-            if (!card) return {};
-            return {
-                opponentDeck: newDeck,
-                opponentHand: [...state.opponentHand, card]
-            };
-        }
+    return {
+        board: INITIAL_BOARD,
+        playerHand: shuffledPlayerDeck.slice(0, 5),
+        playerDeck: shuffledPlayerDeck.slice(5),
+        opponentHand: shuffledOpponentDeck.slice(0, 5),
+        opponentDeck: shuffledOpponentDeck.slice(5),
+        currentPlayer: startingPlayer,
+        startingPlayer,
+        winner: null,
     };
+};
 
-    const handleCardDrop = useCallback((card: Card, index: number) => {
-        if (gameState.winner || gameState.board[index] !== null) return;
+/** Read saved player deck IDs from localStorage (browser-only). */
+const readPlayerDeckIds = (): string[] | undefined => {
+    if (typeof window === 'undefined') return undefined;
+    const saved = localStorage.getItem('playerDeck');
+    if (!saved) return undefined;
+    try {
+        return JSON.parse(saved);
+    } catch (e) {
+        console.error('Failed to parse deck', e);
+        return undefined;
+    }
+};
 
-        // Play placement sound once per successful drop
-        playCardPlace();
+// ---------------------------------------------------------------------------
+// Reducer
+// ---------------------------------------------------------------------------
 
-        setGameState((prev) => {
+const gameReducer = (state: FullGameState, action: GameAction): FullGameState => {
+    switch (action.type) {
+        // ---------------------------------------------------------------
+        // PLACE_CARD — the core game action
+        // ---------------------------------------------------------------
+        case 'PLACE_CARD': {
+            const prev = state.game;
+            if (prev.winner || prev.board[action.index] !== null) return state;
+
+            const sideEffects: SideEffect[] = [{ type: 'SOUND', sound: 'cardPlace' }];
+
             // 1. Place the card
-            let newBoard = prev.board.map((slot) => {
-                if (!slot) return null;
-                return {
-                    ...slot,
-                    stats: { ...slot.stats },
-                    baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
-                };
-            });
-            // Deep clone the card to avoid mutating the hand/previous state
-            // and to ensure abilities modify a fresh object
-            const cardClone = {
-                ...card,
-                stats: { ...card.stats },
-                baseStats: card.baseStats ? { ...card.baseStats } : undefined
+            let newBoard = cloneBoard(prev.board);
+            const cardClone: Card = {
+                ...action.card,
+                stats: { ...action.card.stats },
+                baseStats: action.card.baseStats ? { ...action.card.baseStats } : undefined,
             };
-            newBoard[index] = cardClone;
+            newBoard[action.index] = cardClone;
 
             // 2. Trigger On Reveal abilities
             const abilityResult = applyOnRevealAbility(
                 { ...prev, board: newBoard },
-                index
+                action.index,
             );
 
             if (abilityResult.board) {
-                // Normalize the board to ensure baseStats is explicitly set on all cards
                 newBoard = abilityResult.board.map((slot) => {
                     if (!slot) return null;
                     return {
@@ -166,10 +138,10 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 });
             }
 
-            const placedCard = (newBoard[index] ?? cardClone);
+            const placedCard = newBoard[action.index] ?? cardClone;
 
             // 3. Calculate captures
-            const capturedIndices = calculateCapture(newBoard, placedCard, index, prev.currentMapId);
+            const capturedIndices = calculateCapture(newBoard, placedCard, action.index, prev.currentMapId);
             capturedIndices.forEach((capturedIndex) => {
                 const capturedCard = newBoard[capturedIndex];
                 if (capturedCard) {
@@ -178,31 +150,39 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
             });
 
             if (capturedIndices.length > 0) {
-                playCardCapture();
+                sideEffects.push({ type: 'SOUND', sound: 'cardCapture' });
             }
 
             // 4. Remove card from hand
-            const newPlayerHand = prev.playerHand.filter((c) => c.id !== card.id);
-            const newOpponentHand = prev.opponentHand.filter((c) => c.id !== card.id);
+            const newPlayerHand = prev.playerHand.filter((c) => c.id !== action.card.id);
+            const newOpponentHand = prev.opponentHand.filter((c) => c.id !== action.card.id);
 
-            // 5. Check for winner immediately
-            const winner = checkAndSetWinner(newBoard, prev.startingPlayer);
+            // 5. Check for winner
+            const winner = checkWinCondition(newBoard, prev.startingPlayer);
 
-            // 6. Draw Card for the player who just played (End of Turn Draw)
-            // Actually, usually you draw at start of turn, but user asked for "draw a card at the end of each players turn".
-            // So if Player played, Player draws.
-            let deckUpdates: Partial<GameState> = {};
-            if (!winner) {
-                deckUpdates = drawCard({
-                    ...prev,
-                    playerHand: newPlayerHand,
-                    opponentHand: newOpponentHand,
-                    // We need to pass the current decks, which are in 'prev'
-                    // but we need to make sure we don't use stale state if we modified it (we haven't yet)
-                } as GameState, prev.currentPlayer === 'player' ? 'player' : 'opponent');
+            if (winner) {
+                if (winner === 'player') {
+                    sideEffects.push({ type: 'SOUND', sound: 'win' });
+                } else if (winner === 'opponent') {
+                    sideEffects.push({ type: 'SOUND', sound: 'lose' });
+                }
+                sideEffects.push({ type: 'AWARD_CREDITS', winner });
             }
 
-            return {
+            // 6. Draw a card for the current player (end-of-turn draw)
+            let deckUpdates: Partial<GameState> = {};
+            if (!winner) {
+                deckUpdates = drawCard(
+                    {
+                        ...prev,
+                        playerHand: newPlayerHand,
+                        opponentHand: newOpponentHand,
+                    } as GameState,
+                    prev.currentPlayer === 'player' ? 'player' : 'opponent',
+                );
+            }
+
+            const newGame: GameState = {
                 ...prev,
                 board: newBoard,
                 playerHand: deckUpdates.playerHand || newPlayerHand,
@@ -214,74 +194,161 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 lastMove: {
                     player: prev.currentPlayer,
                     card: placedCard,
-                    index: index
+                    index: action.index,
                 },
-                ...abilityResult.gameState
+                ...abilityResult.gameState,
             };
-        });
 
-        setPreviewCaptures([]);
-    }, [gameState.winner, gameState.board, checkAndSetWinner, playCardCapture, playCardPlace]);
-
-    const handleHover = useCallback((card: Card | null, index: number) => {
-        if (!card || gameState.board[index] !== null) {
-            setPreviewCaptures([]);
-            return;
+            return {
+                game: newGame,
+                previewCaptures: [],
+                _sideEffects: sideEffects,
+            };
         }
 
-        // Simulate placement to check captures
-        // We pass the current board, but calculateCapture will treat the card as if it's at 'index'
-        // for the purpose of neighbor checks. 
-        // Note: Modifiers might be slightly off if they depend on the card being IN the board array 
-        // (like self-buffs from others), but for a preview it's usually close enough.
-        // Ideally we'd create a temp board with the card in it.
-        const tempBoard = [...gameState.board];
-        tempBoard[index] = card;
+        // ---------------------------------------------------------------
+        // RESET_GAME
+        // ---------------------------------------------------------------
+        case 'RESET_GAME': {
+            const deckIds = action.playerDeckIds ?? readPlayerDeckIds();
+            return {
+                game: buildInitialGameState(action.startingPlayer ?? 'player', deckIds),
+                previewCaptures: [],
+                _sideEffects: [],
+            };
+        }
 
-        const captures = calculateCapture(tempBoard, card, index, gameState.currentMapId);
-        setPreviewCaptures(captures);
-    }, [gameState.board, gameState.currentMapId]);
+        // ---------------------------------------------------------------
+        // SET_STARTING_PLAYER
+        // ---------------------------------------------------------------
+        case 'SET_STARTING_PLAYER': {
+            return {
+                ...state,
+                game: {
+                    ...state.game,
+                    currentPlayer: action.player,
+                    startingPlayer: action.player,
+                },
+                _sideEffects: [],
+            };
+        }
 
-    const resetGame = useCallback((startingPlayer: Player = 'player') => {
-        let playerDeckIds: string[] | undefined;
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('playerDeck');
-            if (saved) {
-                try {
-                    playerDeckIds = JSON.parse(saved);
-                } catch (e) { console.error(e); }
+        // ---------------------------------------------------------------
+        // Preview captures (UI-only state)
+        // ---------------------------------------------------------------
+        case 'SET_PREVIEW_CAPTURES': {
+            return { ...state, previewCaptures: action.captures, _sideEffects: [] };
+        }
+
+        case 'CLEAR_PREVIEW_CAPTURES': {
+            if (state.previewCaptures.length === 0) return state; // avoid re-render
+            return { ...state, previewCaptures: [], _sideEffects: [] };
+        }
+
+        default:
+            return state;
+    }
+};
+
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
+export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
+    const [state, dispatch] = useReducer(gameReducer, undefined, (): FullGameState => {
+        const deckIds = readPlayerDeckIds();
+        return {
+            game: buildInitialGameState('player', deckIds),
+            previewCaptures: [],
+            _sideEffects: [],
+        };
+    });
+
+    // Sound effects
+    const { play: playCardPlace } = useSound('/sounds/card-place.mp3', 0.8);
+    const { play: playCardCapture } = useSound('/sounds/card-capture.mp3', 0.85);
+    const { play: playWin } = useSound('/sounds/win-fanfare.mp3', 0.9);
+    const { play: playLose } = useSound('/sounds/lose-sting.mp3', 0.9);
+
+    // Process side-effects emitted by the reducer
+    const prevSideEffectsRef = useRef<SideEffect[]>([]);
+    useEffect(() => {
+        const effects = state._sideEffects;
+        // Skip if same reference (no new dispatch)
+        if (effects === prevSideEffectsRef.current || effects.length === 0) return;
+        prevSideEffectsRef.current = effects;
+
+        for (const effect of effects) {
+            switch (effect.type) {
+                case 'SOUND':
+                    switch (effect.sound) {
+                        case 'cardPlace': playCardPlace(); break;
+                        case 'cardCapture': playCardCapture(); break;
+                        case 'win': playWin(); break;
+                        case 'lose': playLose(); break;
+                    }
+                    break;
+
+                case 'AWARD_CREDITS':
+                    if (typeof window !== 'undefined') {
+                        const currentCredits = parseInt(localStorage.getItem('credits') || '500');
+                        let award = effect.winner === 'player' ? 30 : 5;
+
+                        // First win of the day bonus
+                        if (effect.winner === 'player') {
+                            const today = new Date().toISOString().slice(0, 10);
+                            const lastBonusDate = localStorage.getItem('lastDailyBonusDate');
+                            if (lastBonusDate !== today) {
+                                award += 100;
+                                localStorage.setItem('lastDailyBonusDate', today);
+                            }
+                        }
+
+                        localStorage.setItem('credits', (currentCredits + award).toString());
+                    }
+                    break;
             }
         }
+    }, [state._sideEffects, playCardPlace, playCardCapture, playWin, playLose]);
 
-        const fullPlayerDeck = createDeck('player', 10, playerDeckIds);
-        const fullOpponentDeck = createDeck('opponent', 10);
+    // -----------------------------------------------------------------------
+    // Public API — preserves the same shape consumed by Game.tsx
+    // -----------------------------------------------------------------------
 
-        // Shuffle Decks
-        const shuffledPlayerDeck = shuffle(fullPlayerDeck);
-        const shuffledOpponentDeck = shuffle(fullOpponentDeck);
+    const handleCardDrop = useCallback((card: Card, index: number) => {
+        dispatch({ type: 'PLACE_CARD', card, index });
+    }, []);
 
-        setGameState({
-            board: Array(BOARD_SIZE * BOARD_SIZE).fill(null),
-            playerHand: shuffledPlayerDeck.slice(0, 5),
-            playerDeck: shuffledPlayerDeck.slice(5),
-            opponentHand: shuffledOpponentDeck.slice(0, 5),
-            opponentDeck: shuffledOpponentDeck.slice(5),
-            currentPlayer: startingPlayer,
-            startingPlayer,
-            winner: null,
-        });
-        setPreviewCaptures([]);
+    const handleHover = useCallback(
+        (card: Card | null, index: number) => {
+            if (!card || state.game.board[index] !== null) {
+                dispatch({ type: 'CLEAR_PREVIEW_CAPTURES' });
+                return;
+            }
+
+            // Simulate placement to preview captures
+            const tempBoard = [...state.game.board];
+            tempBoard[index] = card;
+            const captures = calculateCapture(tempBoard, card, index, state.game.currentMapId);
+            dispatch({ type: 'SET_PREVIEW_CAPTURES', captures });
+        },
+        [state.game.board, state.game.currentMapId],
+    );
+
+    const resetGame = useCallback((startingPlayer: Player = 'player') => {
+        const deckIds = readPlayerDeckIds();
+        dispatch({ type: 'RESET_GAME', startingPlayer, playerDeckIds: deckIds });
     }, []);
 
     const setStartingPlayer = useCallback((player: Player) => {
-        setGameState((prev) => ({
-            ...prev,
-            currentPlayer: player,
-            startingPlayer: player,
-        }));
+        dispatch({ type: 'SET_STARTING_PLAYER', player });
     }, []);
 
-    // AI Turn Logic (difficulty-based)
+    // -----------------------------------------------------------------------
+    // AI Turn Logic (unchanged behaviour, now dispatches actions)
+    // -----------------------------------------------------------------------
+    const gameState = state.game;
+
     useEffect(() => {
         if (gameState.currentPlayer === 'opponent' && !gameState.winner) {
             const timer = setTimeout(() => {
@@ -293,17 +360,6 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 if (emptySlots.length === 0 || gameState.opponentHand.length === 0) {
                     return;
                 }
-
-                const cloneBoard = (board: Board): Board =>
-                    board.map((slot) =>
-                        slot
-                            ? {
-                                  ...slot,
-                                  stats: { ...slot.stats },
-                                  baseStats: slot.baseStats ? { ...slot.baseStats } : undefined,
-                              }
-                            : null,
-                    );
 
                 const evaluateGreedy = (board: Board, card: Card, index: number): number => {
                     let tempBoard = cloneBoard(board);
@@ -317,10 +373,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                     tempBoard[index] = cardClone;
 
                     const abilityResult = applyOnRevealAbility(
-                        {
-                            ...gameState,
-                            board: tempBoard,
-                        },
+                        { ...gameState, board: tempBoard },
                         index,
                     );
 
@@ -348,7 +401,6 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 };
 
                 const evaluateWithLookahead = (board: Board, card: Card, index: number): number => {
-                    // Immediate result of AI move
                     let tempBoard = cloneBoard(board);
 
                     const cardClone: Card = {
@@ -360,10 +412,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                     tempBoard[index] = cardClone;
 
                     const abilityResult = applyOnRevealAbility(
-                        {
-                            ...gameState,
-                            board: tempBoard,
-                        },
+                        { ...gameState, board: tempBoard },
                         index,
                     );
 
@@ -379,7 +428,7 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                         }
                     });
 
-                    // After AI move, simulate best player reply greedily
+                    // Simulate best player reply greedily
                     const replyEmptySlots = tempBoard
                         .map((slot, idx) => ({ slot, idx }))
                         .filter((x) => x.slot === null)
@@ -395,17 +444,16 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                                 const playerClone: Card = {
                                     ...playerCard,
                                     stats: { ...playerCard.stats },
-                                    baseStats: playerCard.baseStats ? { ...playerCard.baseStats } : { ...playerCard.stats },
+                                    baseStats: playerCard.baseStats
+                                        ? { ...playerCard.baseStats }
+                                        : { ...playerCard.stats },
                                     owner: 'player',
                                 };
 
                                 replyBoard[slotIndex] = playerClone;
 
                                 const abilityResultPlayer = applyOnRevealAbility(
-                                    {
-                                        ...gameState,
-                                        board: replyBoard,
-                                    },
+                                    { ...gameState, board: replyBoard },
                                     slotIndex,
                                 );
 
@@ -442,8 +490,6 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                         });
                     }
 
-                    // AI wants to maximize its own board advantage while minimizing
-                    // the player's best possible swing on the next turn.
                     let pFinal = 0;
                     let oFinal = 0;
                     tempBoard.forEach((s) => {
@@ -457,10 +503,9 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
 
                 if (difficulty === 'easy') {
                     const randomSlot = emptySlots[Math.floor(Math.random() * emptySlots.length)];
-                    const cardToPlay = gameState.opponentHand[
-                        Math.floor(Math.random() * gameState.opponentHand.length)
-                    ];
-                    handleCardDrop(cardToPlay, randomSlot);
+                    const cardToPlay =
+                        gameState.opponentHand[Math.floor(Math.random() * gameState.opponentHand.length)];
+                    dispatch({ type: 'PLACE_CARD', card: cardToPlay, index: randomSlot });
                     return;
                 }
 
@@ -484,17 +529,20 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
 
                 if (bestMoves.length > 0) {
                     const choice = bestMoves[Math.floor(Math.random() * bestMoves.length)];
-                    handleCardDrop(choice.card, choice.index);
+                    dispatch({ type: 'PLACE_CARD', card: choice.card, index: choice.index });
                 }
-            }, 1000); // 1 second delay for realism
+            }, 1000);
 
             return () => clearTimeout(timer);
         }
-    }, [gameState, handleCardDrop, difficulty]);
+    }, [gameState, difficulty]);
 
+    // -----------------------------------------------------------------------
+    // Return the same public API shape
+    // -----------------------------------------------------------------------
     return {
-        gameState,
-        previewCaptures,
+        gameState: state.game,
+        previewCaptures: state.previewCaptures,
         handleCardDrop,
         handleHover,
         resetGame,
