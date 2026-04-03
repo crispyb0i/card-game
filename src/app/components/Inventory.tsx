@@ -266,7 +266,6 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                 <div onClick={() => toggleCard(card.id)} className="relative inline-block">
                                     <Card
                                         card={card}
-                                        onClick={() => setPreviewCard(card)}
                                         className={isSelected
                                             ? 'opacity-50 grayscale hover:opacity-60'
                                             : 'opacity-90 hover:opacity-100 hover:scale-105'}
