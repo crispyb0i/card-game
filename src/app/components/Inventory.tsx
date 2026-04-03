@@ -266,29 +266,17 @@ export const Inventory: React.FC<InventoryProps> = ({ onBack, onSaveDeck }) => {
                                 <div onClick={() => toggleCard(card.id)} className="relative inline-block">
                                     <Card
                                         card={card}
+                                        onClick={() => setPreviewCard(card)}
                                         className={isSelected
-                                            ? 'ring-2 ring-emerald-500/50 opacity-50 grayscale hover:opacity-60'
+                                            ? 'opacity-50 grayscale hover:opacity-60'
                                             : 'opacity-90 hover:opacity-100 hover:scale-105'}
                                     />
-                                    {/* Preview button */}
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setPreviewCard(card);
-                                        }}
-                                        className="absolute top-4 -right-1 sm:top-6 sm:-right-4 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-slate-900/95 hover:bg-amber-600/90 text-amber-200 text-[10px] sm:text-xs font-bold flex items-center justify-center border border-amber-500/60 hover:border-amber-400 transition-all hover:scale-110 shadow-md z-30 backdrop-blur-sm"
-                                        title="Preview card"
-                                    >
-                                        👁
-                                    </button>
-                                </div>
-                                {isSelected && (
-                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                                        <div className="bg-black/80 text-emerald-400 text-[8px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-3 sm:py-1.5 rounded-full border border-emerald-500/50 shadow-xl backdrop-blur-sm transform -rotate-6">
-                                            IN DECK
+                                    {isSelected && (
+                                        <div className="absolute top-0 right-0 w-5 h-5 sm:w-6 sm:h-6 bg-emerald-500 rounded-full flex items-center justify-center z-30 shadow-md border-2 border-emerald-300 -translate-y-1 translate-x-1">
+                                            <span className="text-white text-[10px] sm:text-xs font-bold">✓</span>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
