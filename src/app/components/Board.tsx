@@ -137,7 +137,7 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
                     <div
                         key={index}
                         className={`
-              relative w-32 h-40 rounded-sm border-2 flex items-center justify-center
+              relative w-[62px] h-[78px] sm:w-24 sm:h-[120px] md:w-32 md:h-40 rounded-sm border md:border-2 flex items-center justify-center
               transition-all duration-200
               ${card ? 'border-transparent' : 'border-slate-600 bg-slate-700/30'}
               ${!card && 'hover:bg-slate-600/50'}
