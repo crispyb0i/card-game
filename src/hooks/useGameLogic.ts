@@ -79,12 +79,23 @@ export const useGameLogic = (difficulty: AIDifficulty = 'normal') => {
                 playLose();
             }
 
-            // Award Credits - PAUSED
-            // if (typeof window !== 'undefined') {
-            //     const currentCredits = parseInt(localStorage.getItem('credits') || '1000');
-            //     const award = winner === 'player' ? 50 : 10;
-            //     localStorage.setItem('credits', (currentCredits + award).toString());
-            // }
+            // Award Credits
+            if (typeof window !== 'undefined') {
+                const currentCredits = parseInt(localStorage.getItem('credits') || '500');
+                let award = winner === 'player' ? 30 : 5;
+
+                // First win of the day bonus
+                if (winner === 'player') {
+                    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+                    const lastBonusDate = localStorage.getItem('lastDailyBonusDate');
+                    if (lastBonusDate !== today) {
+                        award += 100; // 100 bonus credits for first win of the day
+                        localStorage.setItem('lastDailyBonusDate', today);
+                    }
+                }
+
+                localStorage.setItem('credits', (currentCredits + award).toString());
+            }
             return winner;
         }
         return null;
