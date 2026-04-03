@@ -273,8 +273,8 @@ export const Card: React.FC<CardProps> = ({
                 </div>
 
                 {/* Name */}
-                <div className="relative w-full mt-auto flex flex-col items-center gap-0.5 z-10">
-                    <div className={`text-center text-[9px] uppercase tracking-widest font-bold ${textColor} truncate`}>
+                <div className="relative w-full mt-auto flex flex-col items-center gap-0.5 z-10 overflow-hidden">
+                    <div className={`text-center text-[6px] sm:text-[7px] md:text-[9px] uppercase tracking-wider md:tracking-widest font-bold ${textColor} truncate w-full px-0.5`}>
                         {card.name}
                     </div>
                 </div>
