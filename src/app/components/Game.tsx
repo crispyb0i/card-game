@@ -172,32 +172,31 @@ export const Game: React.FC = () => {
                 </div>
 
                 {/* Board Area */}
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-1 sm:gap-2 md:gap-4">
                     {/* Live score (includes second-player bonus) */}
-                    <div className="text-lg md:text-xl text-slate-100 font-sans font-bold mb-2 tracking-wide">
-                        Score:{' '}
-                        <span className="text-amber-300 font-extrabold">You {liveScores.playerScore}</span>
-                        <span className="mx-2 text-slate-500">vs</span>
-                        <span className="text-red-300 font-extrabold">{liveScores.opponentScore} Opponent</span>
+                    <div className="text-[10px] sm:text-sm md:text-xl text-slate-100 font-sans font-bold mb-0 sm:mb-1 md:mb-2 tracking-wide">
+                        <span className="text-amber-300 font-extrabold">{liveScores.playerScore}</span>
+                        <span className="mx-1 sm:mx-2 text-slate-500">vs</span>
+                        <span className="text-red-300 font-extrabold">{liveScores.opponentScore}</span>
                     </div>
 
                     {/* Deck Counts */}
-                    <div className="flex items-center justify-center gap-8 mb-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-16 bg-blue-900/40 border-2 border-blue-500 rounded-sm flex items-center justify-center shadow-inner">
-                                <span className="text-blue-300 font-bold text-lg">{gameState.playerDeck.length}</span>
+                    <div className="flex items-center justify-center gap-3 sm:gap-6 md:gap-8 mb-0 sm:mb-1 md:mb-2">
+                        <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                            <div className="w-6 h-8 sm:w-8 sm:h-12 md:w-12 md:h-16 bg-blue-900/40 border border-blue-500 sm:border-2 rounded-sm flex items-center justify-center shadow-inner">
+                                <span className="text-blue-300 font-bold text-[10px] sm:text-sm md:text-lg">{gameState.playerDeck.length}</span>
                             </div>
-                            <span className="text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
+                            <span className="text-[8px] sm:text-xs md:text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-16 bg-red-900/40 border-2 border-red-500 rounded-sm flex items-center justify-center shadow-inner">
-                                <span className="text-red-300 font-bold text-lg">{gameState.opponentDeck.length}</span>
+                        <div className="flex items-center gap-1 sm:gap-2 md:gap-3">
+                            <div className="w-6 h-8 sm:w-8 sm:h-12 md:w-12 md:h-16 bg-red-900/40 border border-red-500 sm:border-2 rounded-sm flex items-center justify-center shadow-inner">
+                                <span className="text-red-300 font-bold text-[10px] sm:text-sm md:text-lg">{gameState.opponentDeck.length}</span>
                             </div>
-                            <span className="text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
+                            <span className="text-[8px] sm:text-xs md:text-sm text-slate-400 font-sans uppercase tracking-wider font-semibold">Deck</span>
                         </div>
                     </div>
 
-                    <div className="relative p-4 bg-slate-900/50 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm">
+                    <div className="relative p-1 sm:p-2 md:p-4 bg-slate-900/50 rounded-xl border border-slate-700 shadow-2xl backdrop-blur-sm">
                         <Board
                             board={gameState.board}
                             onDropCard={onDropCard}
