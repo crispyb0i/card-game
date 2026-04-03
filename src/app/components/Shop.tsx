@@ -19,8 +19,17 @@ interface ShopProps {
 export const Shop: React.FC<ShopProps> = ({ onBack }) => {
     const [credits, setCredits] = useState(() => {
         if (typeof window !== 'undefined') {
+            // Ensure ownedCards is seeded for new players
+            if (!localStorage.getItem('ownedCards')) {
+                localStorage.setItem('ownedCards', JSON.stringify(getDefaultStarterIds()));
+            }
+            // Ensure credits are seeded for new players
             const savedCredits = localStorage.getItem('credits');
-            return savedCredits ? parseInt(savedCredits) : 500; // Start with 500 credits
+            if (!savedCredits) {
+                localStorage.setItem('credits', '500');
+                return 500;
+            }
+            return parseInt(savedCredits);
         }
         return 500;
     });
