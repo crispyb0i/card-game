@@ -206,6 +206,7 @@ export const Game: React.FC = () => {
                             previewCaptures={previewCaptures}
                             hoveredSlot={hoveredSlot}
                             onCardClick={(card) => setPreviewCard(card)}
+                            lastMove={gameState.lastMove}
                         />
 
                         {/* Winner Overlay */}
