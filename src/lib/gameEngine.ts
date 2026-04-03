@@ -7,6 +7,22 @@ import { collectAllModifiers } from './abilities';
 import { MapId } from './types';
 import { Character, CHARACTERS } from './cards';
 
+// ---- Seeded PRNG (mulberry32) ----
+// Returns a value in [0, 1) and the next seed, so callers can chain without mutation.
+export const seededRandom = (seed: number): { value: number; nextSeed: number } => {
+    let t = (seed + 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    const value = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    return { value, nextSeed: (seed + 1) | 0 };
+};
+
+// Helper: generate a seeded random integer in [0, max) and return updated seed
+export const seededRandomInt = (seed: number, max: number): { value: number; nextSeed: number } => {
+    const { value, nextSeed } = seededRandom(seed);
+    return { value: Math.floor(value * max), nextSeed };
+};
+
 export const calculateCapture = (board: Board, card: Card, index: number, mapId?: MapId): number[] => {
     const capturedIndices: number[] = [];
     const { row, col } = getRowCol(index);
