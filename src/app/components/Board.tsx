@@ -179,16 +179,29 @@ export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, on
                         )}
 
                         {displayCard && (
-                            <div className={`${isCapturedPreview ? 'animate-pulse' : ''} relative z-10`}>
+                            <div className={`${isCapturedPreview ? 'animate-pulse' : ''} ${placedIndex === index ? 'animate-place-slam' : ''} relative z-10`}>
                                 <Card
                                     card={displayCard}
                                     onClick={onCardClick}
                                     board={board}
                                     boardIndex={index}
                                     envEffect={envEffect}
+                                    className={abilityTriggerIndex === index ? 'animate-ability-trigger' : ''}
                                 />
                                 {isCapturedPreview && (
                                     <div className="absolute inset-0 bg-amber-500/20 rounded-sm z-20 pointer-events-none" />
+                                )}
+                                {/* Ability name floating text */}
+                                {abilityTriggerIndex === index && abilityName && (
+                                    <div className="absolute -top-7 left-1/2 animate-ability-name pointer-events-none z-30 whitespace-nowrap">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-black/70 px-2 py-0.5 rounded-full border border-amber-500/50 backdrop-blur-sm">
+                                            {abilityName}
+                                        </span>
+                                    </div>
+                                )}
+                                {/* Affected card highlight overlay */}
+                                {affectedIndices.includes(index) && (
+                                    <div className="absolute inset-0 rounded-lg pointer-events-none z-20 animate-affected bg-amber-400/25 border border-amber-400/40" />
                                 )}
                             </div>
                         )}
