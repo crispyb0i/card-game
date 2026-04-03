@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Board as BoardType, Card as CardType, MapId } from '../../lib/types';
+import { Board as BoardType, Card as CardType, MapId, GameState } from '../../lib/types';
 import { Card } from './Card';
 import { collectAllModifiers } from '../../lib/abilities';
 import { getMapTileConfig, getMapEffectForCard } from '../../lib/maps';
@@ -15,6 +15,7 @@ interface BoardProps {
     hoveredSlot?: number | null;
     onCardClick?: (card: CardType) => void;
     mapId?: MapId;
+    lastMove?: GameState['lastMove'];
 }
 
 export const Board: React.FC<BoardProps> = ({ board, onDropCard, onHoverSlot, onDragLeave, previewCaptures, hoveredSlot, onCardClick, mapId }) => {
