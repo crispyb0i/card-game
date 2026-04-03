@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,9 +12,38 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0f172a",
+};
+
 export const metadata: Metadata = {
-  title: "Mythic Triad",
-  description: "A strategic card battle game of power and tactics.",
+  title: "Mythic Triad — A Roguelike Card Battler",
+  description:
+    "A browser-based card game combining Triple Triad tactics with roguelike progression. 20+ unique characters, 30+ abilities, and strategic deck building. Play free in your browser.",
+  openGraph: {
+    title: "Mythic Triad — A Roguelike Card Battler",
+    description:
+      "A browser-based card game combining Triple Triad tactics with roguelike progression. 20+ unique characters, 30+ abilities, and strategic deck building. Play free in your browser.",
+    type: "website",
+    siteName: "Mythic Triad",
+    images: [
+      {
+        url: "/assets/dragon.png",
+        width: 512,
+        height: 512,
+        alt: "Mythic Triad — Red Dragon card",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mythic Triad — A Roguelike Card Battler",
+    description:
+      "A browser-based card game combining Triple Triad tactics with roguelike progression. Play free in your browser.",
+    images: ["/assets/dragon.png"],
+  },
 };
 
 export default function RootLayout({
