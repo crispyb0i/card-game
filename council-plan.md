@@ -12,15 +12,15 @@
 
 ## Top 10 Immediate Actions
 
-- [ ] `P0` **Produce economy design doc (credit earn rates, shop prices, daily bonus)** — Owner: PM + Business Analyst — Effort: 4 hours
-- [ ] `P0` **Eliminate direct state mutations in abilities.ts and gameEngine.ts** — Owner: Backend Engineer + Frontend Engineer — Effort: 2–3 days
-- [ ] `P0` **Fix/complete or remove 7 stub abilities (pull, anchor, amplify, suppression-field, last-stand, aura, invisible)** — Owner: Research Analyst + Backend Engineer — Effort: 1–2 days
-- [ ] `P0` **Uncomment and tune credit reward system (30/win, 5/loss, 100 first-win-daily)** — Owner: Frontend Engineer + Business Analyst — Effort: 4 hours
-- [ ] `P0` **Gate card collection behind shop — stop giving all cards for free** — Owner: Frontend Engineer — Effort: 4 hours
+- [x] `P0` **Produce economy design doc (credit earn rates, shop prices, daily bonus)** — Owner: PM + Business Analyst — Effort: 4 hours ✅
+- [x] `P0` **Eliminate direct state mutations in abilities.ts and gameEngine.ts** — Owner: Backend Engineer + Frontend Engineer — Effort: 2–3 days ✅
+- [x] `P0` **Fix/complete or remove 7 stub abilities (pull, anchor, amplify, suppression-field, last-stand, aura, invisible)** — Owner: Research Analyst + Backend Engineer — Effort: 1–2 days ✅
+- [x] `P0` **Uncomment and tune credit reward system (30/win, 5/loss, 100 first-win-daily)** — Owner: Frontend Engineer + Business Analyst — Effort: 4 hours ✅
+- [x] `P0` **Gate card collection behind shop — stop giving all cards for free** — Owner: Frontend Engineer — Effort: 4 hours ✅
 - [ ] `P0` **Extract useGameLogic into reducer/state machine with shared GameState + Action types** — Owner: Frontend Engineer — Effort: 3–4 days
-- [ ] `P0` **Replace Math.random() with seeded PRNG** — Owner: Backend Engineer — Effort: 4 hours
-- [ ] `P0` **Deploy to Vercel with OG metadata and basic analytics (5 core events)** — Owner: PM + Marketing + Business — Effort: 1 day
-- [ ] `P0` **Add card capture flip animation and ability trigger visual feedback** — Owner: UI/UX Designer — Effort: 3 days
+- [x] `P0` **Replace Math.random() with seeded PRNG** — Owner: Backend Engineer — Effort: 4 hours ✅
+- [x] `P0` **Deploy to Vercel with OG metadata and basic analytics (5 core events)** — Owner: PM + Marketing + Business — Effort: 1 day ✅ (OG + analytics ready; deploy pending)
+- [x] `P0` **Add card capture flip animation and ability trigger visual feedback** — Owner: UI/UX Designer — Effort: 3 days ✅
 - [ ] `P0` **Validate with 3–5 real players via r/TripleTriad alpha post** — Owner: Research + Marketing — Effort: 2 days (post-deploy)
 
 ---
